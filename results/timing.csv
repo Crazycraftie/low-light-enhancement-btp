@@ -1,0 +1,15 @@
+method,dataset,device,n_images,ms_per_image
+zerodce,LOLv1,mps,15,87.02
+sci,LOLv1,mps,15,8.77
+zerodce,LOLv2-real,mps,100,89.02
+zerodce,LOLv2-syn,mps,100,56.17
+zerodce,LIME,mps,10,2019.93
+zerodce,DICM,mps,69,137.16
+zerodce,MEF,mps,17,71.16
+sci,LOLv2-real,mps,100,5.86
+sci,LOLv2-syn,mps,100,4.12
+sci,LIME,mps,10,22.96
+sci,DICM,mps,69,10.57
+sci,MEF,mps,17,8.24
+llformer,LOLv1,cpu,15,16845.73
+llformer,LOLv2-real,cpu,100,16453.51
