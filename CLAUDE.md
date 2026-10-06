@@ -106,4 +106,8 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
 - Done: env, folder structure, survey, all datasets in `data/`; classical, Zero-DCE, SCI, Retinexformer (pretrained)
   on all 6 sets; SNR-Aware (released) and LLFormer on LOL sets. Reproduced paper numbers on LOL-v1
   (Retinexformer 25.15 vs 25.16, SNR 24.61, LLFormer 23.65, Zero-DCE 14.86, SCI 14.85).
-- TODO Day 1: launch Kaggle training notebook; first git commit; add GitHub remote + push.
+- Training session 1 launched on Kaggle 2026-10-06 18:51 UTC (notebook `retinexformer-train`, T4,
+  0.265 s/iter, ~135–140k of 150k iters per 10.5 h session; checkpoints every 5k). Experiment folder is
+  `experiments/RetinexFormer_LOL_v1` (BasicSR names it after the yml FILE, options.py:47).
+- Next (Day 2): attach session-1 output as input → Save & Run All again (auto-resumes, ~1.5 h left);
+  measure all methods' speed on one Kaggle GPU; diffusion baseline; ExDark detection.
