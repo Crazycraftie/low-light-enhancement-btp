@@ -13,3 +13,4 @@ sci,DICM,mps,69,10.57
 sci,MEF,mps,17,8.24
 llformer,LOLv1,cpu,15,16845.73
 llformer,LOLv2-real,cpu,100,16453.51
+llformer,LOLv2-syn,cpu,100,8970.82
