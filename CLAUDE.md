@@ -120,5 +120,10 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   final 23.10 dB, best 23.61 @94k (best = picked on the TEST set → not a fair main number).
   Paper 25.16; released weights score 25.15 in our eval. Others hit the same gap: GitHub issue #132
   ("Unable to reproduce", 23.45 dB on LOLv1, closed without explanation). Report final model as main.
-- Next (Day 2): download net_g_latest.pth + best_psnr_*.pth → baselines/my_weights/, evaluate with evaluate.py;
+- GSAD done (Kaggle T4): real output LOLv1 22.73 / v2-real 20.14 / v2-syn 24.10 dB; with authors' GT-mean trick
+  27.57 / 28.68 / 28.24 (≈ paper). Trick adds 4–8.5 dB. Best LPIPS of all methods. 0.24 s per sampling step
+  (LOLv1 20 steps = 4.9 s/img, LOLv2 10 steps = 2.4 / 1.2 s/img). Rows: `GSAD` (main) and `GSAD (GT-mean, ...)`.
+- Detection (ExDark, YOLOv8m, CPU): raw 0.662 mAP50 > Retinexformer 0.603 > SCI 0.595 > Zero-DCE 0.572.
+- My Retinexformer evaluated: LOLv1 23.10 dB; NIQE LIME 3.94 / MEF 3.51 / DICM 3.59.
+- Next: download net_g_latest.pth + best_psnr_*.pth → baselines/my_weights/ (DONE), evaluate with evaluate.py;
   measure all methods' speed on one Kaggle GPU; diffusion baseline; ExDark detection.

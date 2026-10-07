@@ -42,6 +42,8 @@ METHODS=(
   "SNR-Aware (released)|results/snr_aware_released/DATASET"   # authors' released images (scripts/import_released.py)
   "LLFormer|results/llformer/DATASET"
   "Retinexformer|results/retinexformer/DATASET"
+  "GSAD|results/gsad/DATASET"                                          # real output (main numbers)
+  "GSAD (GT-mean, authors protocol)|results/gsad_gtmean/DATASET"       # uses GT brightness: reference only
   "Retinexformer (my training)|results/retinexformer_mine/DATASET"   # LOLv1 + unpaired only (LOLv2-real overlaps LOLv1 train)
   "Retinexformer (my training; best-on-test ckpt)|results/retinexformer_mine_best/DATASET"
 )
