@@ -23,6 +23,7 @@ Usage:
     python scripts/yolo_eval.py                          # every yaml in data/exdark_yolo/
     python scripts/yolo_eval.py --sets raw zerodce --device cpu
     python scripts/yolo_eval.py --sets raw --limit 100 --device mps   # quick device check
+                                                                      # (MPS gives WRONG mAP - see main())
 """
 
 import argparse
@@ -74,12 +75,17 @@ def main():
     ap.add_argument("--model", default="yolov8m.pt")
     ap.add_argument("--imgsz", type=int, default=1024)
     ap.add_argument("--batch", type=int, default=8)
-    ap.add_argument("--device", default=None, help="cpu / mps / 0 (cuda). Default: Ultralytics' choice")
+    ap.add_argument("--device", default=None, help="cpu / 0 (cuda). Default: cuda if available, else cpu (NOT mps)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N images (quick checks; not saved to CSV)")
     ap.add_argument("--n-figures", type=int, default=6)
     args = ap.parse_args()
 
+    import torch
     from ultralytics import YOLO
+    if args.device is None:
+        # NEVER default to the Mac GPU: measured 2026-10-07 on the same 100 raw ExDark images,
+        # MPS gave mAP50 0.424 vs CPU 0.646 (recall 0.35 vs 0.57) - MPS output is wrong.
+        args.device = "0" if torch.cuda.is_available() else "cpu"
     model = YOLO(args.model)                      # downloads COCO-pretrained weights the first time
     names = model.names
 

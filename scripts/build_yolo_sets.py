@@ -40,7 +40,10 @@ def coco_names():
 
 def write_yaml(set_dir, names):
     path = Y / f"{set_dir.name}.yaml"
-    yaml.safe_dump({"path": str(set_dir), "val": "images", "names": names}, open(path, "w"), sort_keys=False)
+    # Ultralytics refuses a dataset file without a 'train:' key, even for val-only use.
+    # We never train on it - 'train' just points at the same images to satisfy the check.
+    yaml.safe_dump({"path": str(set_dir), "train": "images", "val": "images", "names": names},
+                   open(path, "w"), sort_keys=False)
     return path
 
 

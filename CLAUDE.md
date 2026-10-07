@@ -70,6 +70,7 @@ notes/       # paper notes, literature review, day plans
 ## Mac gotchas (8 GB Apple Silicon)
 - pyiqa NIQE needs float64 → MPS unsupported → `evaluate.py` runs NIQE on CPU.
 - LLFormer gives WRONG outputs on MPS (up to −2 dB PSNR) → runs on CPU (~17 s/image).
+- YOLOv8 gives WRONG results on MPS (100 raw ExDark imgs: mAP50 0.424 MPS vs 0.646 CPU) → `yolo_eval.py` uses CPU/CUDA.
 - Big images (LIME 2000×1500) swap the Mac → scripts call `torch.mps.empty_cache()` per image.
 - Mac timings are unreliable (swap) → measure speed for all methods on one Kaggle GPU later.
 - zsh does not word-split `$var` → loops using `set -- $e` must run under `bash`.
@@ -115,5 +116,9 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
 - Training session 1 launched on Kaggle 2026-10-06 18:51 UTC (notebook `retinexformer-train`, T4,
   0.265 s/iter, ~135–140k of 150k iters per 10.5 h session; checkpoints every 5k). Experiment folder is
   `experiments/RetinexFormer_LOL_v1` (BasicSR names it after the yml FILE, options.py:47).
-- Next (Day 2): attach session-1 output as input → Save & Run All again (auto-resumes, ~1.5 h left);
+- Training DONE 2026-10-07 (150k iters, 2 sessions, ~11.9 GPU h on T4). Training-time val PSNR on LOLv1:
+  final 23.10 dB, best 23.61 @94k (best = picked on the TEST set → not a fair main number).
+  Paper 25.16; released weights score 25.15 in our eval. Others hit the same gap: GitHub issue #132
+  ("Unable to reproduce", 23.45 dB on LOLv1, closed without explanation). Report final model as main.
+- Next (Day 2): download net_g_latest.pth + best_psnr_*.pth → baselines/my_weights/, evaluate with evaluate.py;
   measure all methods' speed on one Kaggle GPU; diffusion baseline; ExDark detection.
