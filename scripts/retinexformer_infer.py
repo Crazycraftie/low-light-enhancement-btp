@@ -106,9 +106,10 @@ def main():
     p.add_argument("--repo", default=".", help="Path to the cloned Retinexformer repo")
     p.add_argument("--skip-existing", action="store_true", help="do not redo images already saved")
     p.add_argument("--no-speed-log", action="store_true", help="do not append to results/speed.csv")
+    p.add_argument("--device", default=None, help="force cpu / mps / cuda (e.g. cpu for very large images on the 8 GB Mac)")
     args = p.parse_args()
 
-    device = pick_device()
+    device = torch.device(args.device) if args.device else pick_device()
     model, factor, n_params = build_model(args.opt, args.weights, device)
 
     out_dir = Path(args.output)

@@ -34,3 +34,4 @@ results/**/*.jpg
 # ...but DO keep figures for the report/slides
 !results/figures/
 !results/figures/**/*.png
+!results/training_logs/*.log

@@ -4,6 +4,7 @@ Gamma,DICM,69,,,,3.9002
 HE,DICM,69,,,,3.7998
 Input,DICM,69,,,,4.2726
 Retinexformer,DICM,69,,,,3.4209
+Retinexformer (my training),DICM,69,,,,3.5911
 SCI,DICM,69,,,,4.1393
 Zero-DCE,DICM,69,,,,3.7424
 CLAHE,LIME,10,,,,3.9116
@@ -19,6 +20,8 @@ HE,LOLv1,15,14.2553,0.4247,0.6023,
 Input,LOLv1,15,7.7733,0.1914,0.5596,
 LLFormer,LOLv1,15,23.6491,0.8163,0.1692,
 Retinexformer,LOLv1,15,25.1532,0.8434,0.1314,
+Retinexformer (my training),LOLv1,15,23.0969,0.8278,0.1432,
+Retinexformer (my training; best-on-test ckpt),LOLv1,15,23.6108,0.8270,0.1442,
 SCI,LOLv1,15,14.8538,0.5274,0.3389,
 SNR-Aware (released),LOLv1,15,24.6085,0.8401,0.1511,
 Zero-DCE,LOLv1,15,14.8607,0.5624,0.3352,
@@ -45,5 +48,6 @@ Gamma,MEF,17,,,,3.3834
 HE,MEF,17,,,,3.9306
 Input,MEF,17,,,,4.2659
 Retinexformer,MEF,17,,,,3.4382
+Retinexformer (my training),MEF,17,,,,3.5123
 SCI,MEF,17,,,,3.6378
 Zero-DCE,MEF,17,,,,3.2831

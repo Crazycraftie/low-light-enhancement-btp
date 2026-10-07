@@ -42,6 +42,8 @@ METHODS=(
   "SNR-Aware (released)|results/snr_aware_released/DATASET"   # authors' released images (scripts/import_released.py)
   "LLFormer|results/llformer/DATASET"
   "Retinexformer|results/retinexformer/DATASET"
+  "Retinexformer (my training)|results/retinexformer_mine/DATASET"   # LOLv1 + unpaired only (LOLv2-real overlaps LOLv1 train)
+  "Retinexformer (my training; best-on-test ckpt)|results/retinexformer_mine_best/DATASET"
 )
 
 # Helper: does a folder exist AND contain at least one file?
