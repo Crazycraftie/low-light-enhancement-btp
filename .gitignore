@@ -31,3 +31,6 @@ results/**/*.jpg
 
 # Logs
 *.log
+# ...but DO keep figures for the report/slides
+!results/figures/
+!results/figures/**/*.png

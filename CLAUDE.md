@@ -57,8 +57,12 @@ notes/       # paper notes, literature review, day plans
   (`--no-classical` to only evaluate).
 - `scripts/run_light_baselines.py --method zerodce|sci|llformer` — official weights, writes `results/<method>/<dataset>/`
   and `results/timing.csv`. Repos cloned in `baselines/`. SCI uses `medium.pt`; LLFormer weights are LOL-v1-trained.
-- `scripts/retinexformer_unpaired.py` — pretrained Retinexformer on any image folder (Mac MPS or Kaggle).
-  LOL sets use their matching weights; LIME/DICM/MEF use `LOL_v1.pth`.
+- `scripts/retinexformer_infer.py --opt <yml> --weights <pth> --input --output [--method]` — any Retinexformer
+  checkpoint on any folder; architecture from yml `network_g`, pad = yml `val.window_size` (4, as official test);
+  appends speed + params to `results/speed.csv`. LOL sets use matching weights; LIME/DICM/MEF use `LOL_v1.pth`.
+- `scripts/exdark_to_yolo.py` → `data/exdark_yolo/raw/` (ExDark TEST split, 100/class, seed 0, ≤1024 px, COCO ids,
+  EXIF orientation NOT applied). `scripts/check_labels.py` → `results/figures/label_check/`.
+- `notebooks/gsad_test.ipynb` — GSAD on Kaggle; saves `noadjust/` (main) and `gtmean/` (authors' GT-brightness trick).
 - `scripts/import_released.py` — imports authors' released result images → `results/<method>_released/<dataset>/`.
   Used for SNR-Aware (Retinexformer README "results of compared methods" Drive).
 - `notebooks/retinexformer_train.ipynb` — Kaggle training; auto-resumes if previous version output is attached.
@@ -69,6 +73,8 @@ notes/       # paper notes, literature review, day plans
 - Big images (LIME 2000×1500) swap the Mac → scripts call `torch.mps.empty_cache()` per image.
 - Mac timings are unreliable (swap) → measure speed for all methods on one Kaggle GPU later.
 - zsh does not word-split `$var` → loops using `set -- $e` must run under `bash`.
+- `ultralytics` (YOLOv8) pins numpy to 1.26.4 here (macOS excludes numpy 2.0–2.3.4; 2.3.5+ needs Python 3.11).
+  Verified 2026-10-07: all metrics identical after the downgrade. Don't "fix" the pip warning about opencv-headless.
 
 ## Methods to compare
 Input (reference), HE, CLAHE, Gamma, Zero-DCE, SCI, SNR-Aware, LLFormer, Retinexformer (pretrained),
