@@ -1,4 +1,9 @@
 method,device,image_size,n_images,ms_per_image,params_M
-"GSAD (LOLv1 weights, 20 sampling steps)",Tesla T4,600x400,15,4873.55,
-"GSAD (LOLv2-real weights, 10 sampling steps)",Tesla T4,600x400,100,2360.00,
-"GSAD (LOLv2-syn weights, 10 sampling steps)",Tesla T4,384x384,100,1244.25,
+"GSAD (LOLv1 weights, 20 sampling steps)",Tesla T4,600x400,15,4873.55,17.44
+"GSAD (LOLv2-real weights, 10 sampling steps)",Tesla T4,600x400,100,2360.00,17.44
+"GSAD (LOLv2-syn weights, 10 sampling steps)",Tesla T4,384x384,100,1244.25,17.44
+Zero-DCE,Tesla T4,600x400,100,19.10,0.0794
+SCI (medium),Tesla T4,600x400,100,1.50,0.0003
+LLFormer,Tesla T4,600x400,100,874.37,24.5490
+Retinexformer,Tesla T4,600x400,100,151.27,1.606
+"GSAD (LOLv1 weights, 20 steps) on ExDark-200",Tesla T4,"mixed ExDark, <=1024 px (avg ~2x LOL)",200,13719.40,17.44

@@ -18,6 +18,8 @@ Warns if an enhanced image is missing for a raw image (enhancer crashed partway?
 Usage:
     python scripts/build_yolo_sets.py                       # raw + every results/<m>/ExDark that exists
     python scripts/build_yolo_sets.py --methods zerodce sci
+    python scripts/build_yolo_sets.py --subset results/exdark_subset200.txt --suffix _200 \
+        --methods zerodce sci retinexformer gsad       # 200-image sets (raw_200 is always built too)
 """
 
 import argparse
@@ -51,16 +53,28 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--methods", nargs="*", default=None,
                     help="folder names under results/ that contain an ExDark/ subfolder (default: all found)")
+    ap.add_argument("--subset", default=None,
+                    help="file whose first column lists the stems to use (e.g. results/exdark_subset200.txt)")
+    ap.add_argument("--suffix", default="", help="appended to every set name, e.g. _200 -> raw_200, gsad_200")
     args = ap.parse_args()
 
     names = coco_names()
     raw = Y / "raw"
     stems = sorted(p.stem for p in (raw / "images").glob("*.png"))
-    print(f"raw: {len(stems)} images -> {write_yaml(raw, names)}")
+    if args.subset:
+        keep = {l.split("\t")[0] for l in Path(args.subset).read_text().splitlines()[1:] if l.strip()}
+        stems = [s for s in stems if s in keep]
+    if args.suffix:
+        # raw also needs its own subset set, so every method is scored on exactly the same images
+        src_dirs = {"raw" + args.suffix: raw / "images"}
+    else:
+        src_dirs = {}
+        print(f"raw: {len(stems)} images -> {write_yaml(raw, names)}")
 
     methods = args.methods or sorted(p.parent.name for p in (ROOT / "results").glob("*/ExDark") if p.is_dir())
     for m in methods:
-        src = ROOT / "results" / m / "ExDark"
+        src_dirs[m + args.suffix] = ROOT / "results" / m / "ExDark"
+    for m, src in src_dirs.items():
         dst = Y / m
         if dst.exists():
             shutil.rmtree(dst)                    # rebuild from scratch: never mix old and new images

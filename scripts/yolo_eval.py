@@ -90,8 +90,6 @@ def main():
     names = model.names
 
     sets = args.sets or sorted(p.stem for p in Y.glob("*.yaml"))
-    raw_stems = sorted(p.stem for p in (Y / "raw" / "images").glob("*.png"))
-    fig_stems = random.Random(0).sample(raw_stems, args.n_figures)   # same images for every method
 
     tmp = tempfile.mkdtemp()
     for s in sets:
@@ -122,6 +120,9 @@ def main():
         fig_dir = ROOT / "results" / "figures" / "detection" / s
         fig_dir.mkdir(parents=True, exist_ok=True)
         img_dir = Path(yaml.safe_load(open(yml))["path"]) / "images"
+        # Example images: drawn from this set's own (sorted) image list with a fixed seed, so every
+        # method evaluated on the same images (all 1,200 or the same 200) shows the same examples.
+        fig_stems = random.Random(0).sample(sorted(p.stem for p in img_dir.glob("*.png")), args.n_figures)
         for r in model.predict([str(img_dir / f"{st}.png") for st in fig_stems], imgsz=args.imgsz,
                                conf=0.25, classes=CLASSES, device=args.device, verbose=False):
             cv2.imwrite(str(fig_dir / f"{Path(r.path).stem}.png"), r.plot())
