@@ -43,7 +43,8 @@ subset is slightly easier than the 1,200 (raw 0.707 vs 0.662).
 
 6. **The diffusion model does not change the conclusion:** GSAD is the best enhancer for detection by a hair
    (0.633 vs 0.628 for Retinexformer — within noise on 200 images) and still 7.4 points below raw, while being
-   ~90× slower than Retinexformer. Same pattern: recall drops, precision roughly unchanged.
+   ~16–32× slower than Retinexformer at the same image size (600×400 on a T4: 2.36 s with 10 steps / 4.87 s
+   with 20 steps vs 0.151 s). Same pattern: recall drops, precision roughly unchanged.
 
 **Limitations.** One detector, zero-shot (no fine-tuning on enhanced images), one random subset
 (no confidence intervals), noisy ExDark labels (loose boxes, "person" on posters — see
