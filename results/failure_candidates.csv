@@ -1,0 +1,19 @@
+kind,method,image,psnr,note
+worst,Zero-DCE,55,7.98,
+worst,Zero-DCE,23,8.26,
+worst,SCI,55,7.37,
+worst,SCI,23,7.60,
+worst,SNR-Aware (released),179,15.89,
+worst,SNR-Aware (released),55,18.55,
+worst,LLFormer,493,13.98,
+worst,LLFormer,547,16.48,
+worst,Retinexformer,1,19.54,
+worst,Retinexformer,55,21.39,
+worst,GSAD,493,12.29,
+worst,GSAD,111,14.69,
+worst,Retinexformer (my training),493,14.76,
+worst,Retinexformer (my training),547,15.52,
+disagree,,79,spread 20.09,best LLFormer 31.96 / worst Zero-DCE 11.87
+disagree,,665,spread 18.76,best GSAD 28.51 / worst SCI 9.75
+disagree,,23,spread 18.70,best SNR-Aware (released) 26.30 / worst SCI 7.60
+disagree,,111,spread 16.55,best SNR-Aware (released) 29.20 / worst Zero-DCE 12.65
