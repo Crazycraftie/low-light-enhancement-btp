@@ -22,13 +22,16 @@ Usage (repo root, llie env; baselines cloned into baselines/):
     python scripts/run_light_baselines.py --method zerodce --input data/LOLv1/Test/input --dataset LOLv1
     python scripts/run_light_baselines.py --method sci     --input data/LOLv1/Test/input --dataset LOLv1
 
-Writes results/<method>/<dataset>/*.png and appends the timing to results/timing.csv.
+Writes results/<method>/<dataset>/*.png and appends one row to results/speed.csv
+(method, device, image_size, n_images, ms_per_image, params_M) - same format as
+retinexformer_infer.py. Compare speeds only between rows measured on the SAME device.
 """
 
 import argparse
 import csv
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -61,6 +64,7 @@ def build_zerodce(device):
         # the official test script saves the 2nd one.
         _, enhanced, _ = net(x)
         return enhanced
+    run.n_params = sum(q.numel() for q in net.parameters())   # for results/speed.csv
     return run
 
 
@@ -90,6 +94,7 @@ def build_sci(device, weights="medium"):
         # forward returns (illumination i, reflectance r = x / i); output is r.
         _, r = net(x)
         return r
+    run.n_params = sum(q.numel() for q in net.parameters())   # for results/speed.csv
     return run
 
 
@@ -119,6 +124,7 @@ def build_llformer(device):
         ph, pw = (16 - h % 16) % 16, (16 - w % 16) % 16
         y = net(torch.nn.functional.pad(x, (0, pw, 0, ph), mode="reflect"))
         return y[:, :, :h, :w]
+    run.n_params = sum(q.numel() for q in net.parameters())   # for results/speed.csv
     return run
 
 
@@ -129,6 +135,7 @@ def main():
     p.add_argument("--dataset", required=True)
     p.add_argument("--sci-weights", default="medium", choices=["easy", "medium", "difficult"])
     p.add_argument("--device", default=None, help="force cpu / mps / cuda")
+    p.add_argument("--no-speed-log", action="store_true", help="do not append to results/speed.csv")
     args = p.parse_args()
 
     device = torch.device(args.device) if args.device else pick_device()
@@ -149,12 +156,15 @@ def main():
     images = sorted(q for q in Path(args.input).iterdir() if q.suffix.lower() in IMAGE_EXTS)
     print(f"{args.method} on {args.dataset}: {len(images)} images, device={device}")
 
-    times = []
+    times, sizes = [], Counter()
     with torch.no_grad():
         for i, path in enumerate(images):
             rgb = np.asarray(Image.open(path).convert("RGB"), dtype=np.float32) / 255.0
+            sizes[f"{rgb.shape[1]}x{rgb.shape[0]}"] += 1
             x = torch.from_numpy(rgb).permute(2, 0, 1)[None].to(device)
 
+            if device.type == "cuda":
+                torch.cuda.synchronize()  # make sure the copy to the GPU is finished before timing
             t0 = time.perf_counter()
             y = run(x)
             if device.type == "mps":
@@ -172,16 +182,18 @@ def main():
     ms = 1000 * float(np.mean(times)) if times else float("nan")
     print(f"  saved -> {out_dir}   mean time {ms:.1f} ms/image")
 
-    # Keep a small timing log. Note: Mac timings are NOT comparable with Kaggle
-    # GPU timings — always compare speed on the same hardware.
-    tpath = ROOT / "results" / "timing.csv"
-    new = not tpath.exists()
-    with open(tpath, "a", newline="") as f:
+    if args.no_speed_log or not times:
+        return
+    size = sizes.most_common(1)[0][0] if len(sizes) == 1 else f"mixed ({len(sizes)} sizes, most common {sizes.most_common(1)[0][0]})"
+    dev = torch.cuda.get_device_name(0) if device.type == "cuda" else str(device)
+    names = {"zerodce": "Zero-DCE", "sci": f"SCI ({args.sci_weights})", "llformer": "LLFormer"}
+    path = ROOT / "results" / "speed.csv"
+    new = not path.exists()
+    with open(path, "a", newline="") as f:
         w = csv.writer(f)
         if new:
-            w.writerow(["method", "dataset", "device", "n_images", "ms_per_image"])
-        w.writerow([args.method, args.dataset, str(device), len(images), f"{ms:.2f}"])
-
+            w.writerow(["method", "device", "image_size", "n_images", "ms_per_image", "params_M"])
+        w.writerow([names[args.method], dev, size, len(images), f"{ms:.2f}", f"{run.n_params / 1e6:.4f}"])
 
 if __name__ == "__main__":
     main()
