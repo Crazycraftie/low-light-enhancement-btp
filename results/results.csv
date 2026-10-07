@@ -12,6 +12,7 @@ Gamma,LIME,10,,,,3.9064
 HE,LIME,10,,,,3.8778
 Input,LIME,10,,,,4.3505
 Retinexformer,LIME,10,,,,4.0742
+Retinexformer (my training),LIME,10,,,,3.9440
 SCI,LIME,10,,,,4.2015
 Zero-DCE,LIME,10,,,,3.7712
 CLAHE,LOLv1,15,9.1323,0.3565,0.5029,
