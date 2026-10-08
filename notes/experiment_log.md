@@ -73,4 +73,16 @@ weights span 0.67–1.33, average exactly 1, and the darkest 30% of pixels get m
 **Verification:** smoke test on the Mac (20 iters, all 4 losses): at iteration 10 the plain L1 was identical in
 every run (0.03221) → identical batches confirmed. `final.pth` loads in `retinexformer_infer.py`.
 
-**Results:** _to be filled in from `results/tables.md` (table 3) when the Kaggle run finishes._
+**Incident (2026-10-08) — first run used the WRONG start weights; re-run.**
+The first Kaggle run of A–D started from `LOL_v2_real.pth`, not `LOL_v1.pth`: when looking up Google Drive file IDs
+I paired each file name with the *next* entry's ID. Symptoms that exposed it: training L1 at the start was 0.088
+instead of 0.041; after fine-tuning, PSNR dropped on LOL-v1 *training* images too (26.6 → 22.3 dB); all four runs
+ended at ~22.7 dB on LOL-v1 whatever the loss; a "pretrained" ExDark row differed between Kaggle (0.664) and the Mac (0.628).
+How it was found: (1) devices ruled out — Mac-CPU and Kaggle-GPU YOLO agree on the same images (raw 0.707/0.706,
+A 0.661/0.661, B 0.658/0.658); MPS and CPU enhancement agree to 1 grey level; (2) md5 of Kaggle's "LOL_v1.pth" =
+md5 of local `LOL_v2_real.pth` (6738bd02...). A 60-iteration probe from the CORRECT weights shows lr 2e-5 does not
+harm the model (L1 on fixed crops 0.0491 → 0.0460), so the settings were kept. Fix: correct ID + an md5 assert in
+every notebook. Invalid results archived in `results/_invalid_started_from_LOLv2real/` (with README).
+Speed numbers (Day 2) are unaffected: same architecture and image size.
+
+**Results:** _to be filled in from `results/tables.md` (table 3) after the re-run._
