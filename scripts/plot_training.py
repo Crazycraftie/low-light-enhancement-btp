@@ -17,6 +17,9 @@ from the earlier session (they were thrown away when we resumed).
 Log lines parsed (BasicSR format):
     [Retin..][epoch:2257, iter: 135,500, lr:(1.039e-05,)] [eta: ..] l_pix: 7.0440e-02
     Validation ValSet,   # psnr: 23.0317     (follows the iter line it belongs to)
+
+Usage:
+    python scripts/plot_training.py        # reads results/training_logs/train_*.log
 """
 
 import csv

@@ -27,6 +27,11 @@ Two design decisions that differ from the Day-3 plan, both MEASURED on LOL-v1 tr
   2. Weights are divided by their mean (per image), so the average weight is exactly 1. The SNR loss
      then has the same overall size as the control L1 - it only MOVES emphasis toward noisy pixels.
      (Measured: darkest 30% of pixels get mean weight 1.13, the rest 0.94, alpha = 1.)
+
+Usage:
+    python scripts/losses.py                                   # self-test: weight mean = 1, perfect prediction -> 0
+    from losses import total_loss                              # in scripts/finetune.py
+    loss = total_loss("snr", pred, gt, low, alpha=1.0, fft_weight=0.05)
 """
 
 import torch
