@@ -35,3 +35,6 @@ results/**/*.jpg
 !results/figures/
 !results/figures/**/*.png
 !results/training_logs/*.log
+
+# Professor's paper/slides - style reference only, never pushed to GitHub
+references/
