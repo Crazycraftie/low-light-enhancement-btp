@@ -37,7 +37,7 @@ ExDark), and test a **noise-aware SNR-weighted loss** in a controlled fine-tunin
 (1.61 M) · LLFormer 874 ms (24.55 M) · GSAD 2,360 ms with 10 steps / 4,874 ms with 20 steps (17.44 M).
 
 **Detection — YOLOv8m mAP50 on ExDark (test split, 1,200 images):** raw **0.662** · Retinexformer 0.603 · SCI 0.595 ·
-Zero-DCE 0.572. (200-image subset: raw **0.707** · GSAD 0.633 · Retinexformer 0.628 · SCI 0.626 · Zero-DCE 0.603.)
+Zero-DCE 0.572. (200-image subset: raw **0.707** · GSAD 0.633 · Retinexformer 0.628 · SCI 0.625 · Zero-DCE 0.603.)
 
 **Ablation (fine-tuning from released LOL-v1 weights, only the loss differs):** LOL-v1 PSNR A (L1) 24.31 · **B (SNR-L1,
 mine) 24.32** · C (L1+FFT) 24.31 · D (SNR-L1+FFT) 24.32; dark-30% PSNR A 24.89 · B 24.91.

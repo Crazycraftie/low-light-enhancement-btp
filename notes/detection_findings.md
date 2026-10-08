@@ -38,7 +38,7 @@ subset is slightly easier than the 1,200 (raw 0.707 vs 0.662).
 | Raw (dark) | **0.707** | **0.378** | 0.700 | **0.637** | — |
 | GSAD (diffusion, LOL-v1 weights, 20 steps) | 0.633 | 0.342 | 0.668 | 0.560 | 13.7 s (ExDark size) |
 | Retinexformer (LOL-v1 weights) | 0.628 | 0.340 | 0.677 | 0.553 | 0.15 s (600×400) |
-| SCI | 0.626 | 0.330 | 0.630 | 0.577 | 0.002 s |
+| SCI | 0.625 | 0.330 | 0.630 | 0.577 | 0.002 s |
 | Zero-DCE | 0.603 | 0.317 | 0.711 | 0.513 | 0.019 s |
 
 6. **The diffusion model does not change the conclusion:** GSAD is the best enhancer for detection by a hair
