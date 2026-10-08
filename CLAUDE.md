@@ -119,4 +119,7 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   never pick checkpoints by test score; Mac MPS is wrong for LLFormer/YOLO; speed only from one Kaggle T4.
 - Incident: first Day-3 run used LOL_v2_real.pth (wrong Drive ID) → archived in `results/_invalid_started_from_LOLv2real/`,
   re-run with md5-checked weights. Notebooks now assert weight md5.
+- Verified paper-reported numbers (with sources) in `results/reported_in_papers.csv`: Retinexformer 25.16/22.80/25.67
+  (1.61M params, 15.57 GFLOPs); LLFormer 23.6491/0.8163/0.1692 = ours exactly; GSAD 27.839/28.818/28.670 (GT-mean protocol).
+  Retinexformer's own ExDark test trains YOLOv3 from scratch on enhanced images and has NO raw-input row (protocol differs from ours).
 - Kaggle GPU used this week: ~12 h training + ~6 h notebooks.

@@ -1,0 +1,11 @@
+method,dataset,psnr,ssim,lpips,source,protocol_note
+Retinexformer,LOLv1,25.16,0.845,,"Cai et al. ICCV 2023, Table 1 (arXiv:2303.06705)",
+Retinexformer,LOLv2-real,22.80,0.840,,"Cai et al. ICCV 2023, Table 1",
+Retinexformer,LOLv2-syn,25.67,0.930,,"Cai et al. ICCV 2023, Table 1",
+SNR-Aware (released),LOLv1,24.61,0.842,,"Cai et al. ICCV 2023, Table 1 (row SNR-Net)",
+SNR-Aware (released),LOLv2-real,21.48,0.849,,"Cai et al. ICCV 2023, Table 1 (row SNR-Net)",
+SNR-Aware (released),LOLv2-syn,24.14,0.928,,"Cai et al. ICCV 2023, Table 1 (row SNR-Net)",
+LLFormer,LOLv1,23.6491,0.8163,0.1692,"Wang et al. AAAI 2023, LOL table (arXiv:2212.11548)",
+GSAD,LOLv1,27.839,0.877,0.091,"Hou et al. NeurIPS 2023, Table 1 (arXiv:2310.17577)",uses GT-mean brightness correction in test script
+GSAD,LOLv2-real,28.818,0.895,0.095,"Hou et al. NeurIPS 2023, Table 1",uses GT-mean brightness correction in test script
+GSAD,LOLv2-syn,28.670,0.944,0.047,"Hou et al. NeurIPS 2023, Table 1",uses GT-mean brightness correction in test script

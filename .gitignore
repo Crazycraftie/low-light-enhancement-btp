@@ -38,3 +38,12 @@ results/**/*.jpg
 
 # Professor's paper/slides - style reference only, never pushed to GitHub
 references/
+
+# LaTeX build files
+report/*.aux
+report/*.log
+report/*.bbl
+report/*.blg
+report/*.out
+report/main.pdf
+report/overleaf_report.zip
