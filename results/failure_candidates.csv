@@ -1,19 +1,37 @@
 kind,method,image,psnr,note
 worst,Zero-DCE,55,7.98,
 worst,Zero-DCE,23,8.26,
+worst,Zero-DCE,665,10.79,
 worst,SCI,55,7.37,
 worst,SCI,23,7.60,
+worst,SCI,665,9.75,
 worst,SNR-Aware (released),179,15.89,
 worst,SNR-Aware (released),55,18.55,
+worst,SNR-Aware (released),547,19.61,
 worst,LLFormer,493,13.98,
 worst,LLFormer,547,16.48,
+worst,LLFormer,111,20.06,
 worst,Retinexformer,1,19.54,
 worst,Retinexformer,55,21.39,
+worst,Retinexformer,493,22.58,
 worst,GSAD,493,12.29,
 worst,GSAD,111,14.69,
+worst,GSAD,547,16.62,
 worst,Retinexformer (my training),493,14.76,
 worst,Retinexformer (my training),547,15.52,
+worst,Retinexformer (my training),179,18.72,
+worst,FT-B SNR-L1 (mine),55,19.58,
+worst,FT-B SNR-L1 (mine),1,20.17,
+worst,FT-B SNR-L1 (mine),547,21.10,
+worst,FT-A control (L1),55,19.58,
+worst,FT-A control (L1),1,20.17,
+worst,FT-A control (L1),547,21.06,
 disagree,,79,spread 20.09,best LLFormer 31.96 / worst Zero-DCE 11.87
 disagree,,665,spread 18.76,best GSAD 28.51 / worst SCI 9.75
 disagree,,23,spread 18.70,best SNR-Aware (released) 26.30 / worst SCI 7.60
 disagree,,111,spread 16.55,best SNR-Aware (released) 29.20 / worst Zero-DCE 12.65
+disagree,,22,spread 16.13,best GSAD 29.26 / worst Zero-DCE 13.13
+disagree,,669,spread 14.43,best GSAD 28.48 / worst SCI 14.05
+vs_ref,FT-B SNR-L1 (mine),493,21.28,-0.06 dB vs FT-A control (L1)
+vs_ref,FT-B SNR-L1 (mine),23,24.31,-0.02 dB vs FT-A control (L1)
+vs_ref,FT-B SNR-L1 (mine),1,20.17,-0.01 dB vs FT-A control (L1)

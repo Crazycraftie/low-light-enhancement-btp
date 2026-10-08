@@ -85,4 +85,8 @@ harm the model (L1 on fixed crops 0.0491 → 0.0460), so the settings were kept.
 every notebook. Invalid results archived in `results/_invalid_started_from_LOLv2real/` (with README).
 Speed numbers (Day 2) are unaffected: same architecture and image size.
 
-**Results:** _to be filled in from `results/tables.md` (table 3) after the re-run._
+**Results (re-run with the correct LOL_v1 weights, md5-verified, 2026-10-08):** training L1 0.040 → 0.035 in every run;
+LOL-v1 PSNR A 24.31 / B 24.32 / C 24.31 / D 24.32 (start 25.15); dark-30% PSNR A 24.89 / B 24.91 (B better on 13/15
+images, sign test p = 0.007, +0.01–0.05 dB); LOL-v2-syn 16.61–16.62 (start 16.19); ExDark-200 mAP50 0.626–0.627.
+Kaggle T4: 0.31 s/iter (B, D) vs 0.29 s/iter (A, C) — the SNR map costs ~6%.
+Interpretation: `notes/contribution_findings.md`. Tables: `results/tables.md`.

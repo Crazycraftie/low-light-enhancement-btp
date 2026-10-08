@@ -44,18 +44,22 @@ Retinexformer and its fine-tuned versions use LOL-v1 weights here.
 | SCI | 4.202 | 4.139 | 3.638 |
 | Retinexformer | 4.074 | **3.421** | 3.438 |
 | Retinexformer (my training) | 3.944 | 3.591 | 3.512 |
+| FT-A control (L1) | 3.982 | 3.507 | 3.444 |
+| FT-B SNR-L1 (mine) | 4.004 | 3.638 | 3.469 |
+| FT-C L1+FFT | 3.980 | 3.515 | 3.438 |
+| FT-D SNR-L1+FFT | 4.001 | 3.630 | 3.457 |
 
 ## 3. Ablation — fine-tuning from the released LOL-v1 weights (same data order, iterations, LR)
 
-Only the loss differs between A-D. Differences below ~0.1-0.2 dB on LOL-v1 (15 images) are within noise. LOLv2-syn PSNR of the pretrained row is omitted (its table-1 value uses LOLv2-syn-trained weights). Detection rows were all run on one Kaggle T4 (raw on that GPU: see table 4).
+Only the loss differs between A-D. Differences below ~0.1-0.2 dB on LOL-v1 (15 images) are within noise. LOLv2-syn: all rows use LOL-v1 weights (cross-dataset), incl. the start point. Detection rows were all run on one Kaggle T4 (raw on that GPU: see table 4).
 
 | Run | LOLv1 PSNR↑ | LOLv1 SSIM↑ | LOLv1 LPIPS↓ | dark-30% PSNR↑ | dark-30% SSIM↑ | LOLv2-syn PSNR↑ | NIQE mean↓ | ExDark-200 mAP50↑ |
 |---|---|---|---|---|---|---|---|---|
-| pretrained (start point) | **25.15** | **0.843** | **0.131** | **25.31** | **0.779** | – | **3.644** | – |
-| A: L1 (control) | – | – | – | – | – | – | – | – |
-| B: SNR-weighted L1 (mine) | – | – | – | – | – | – | – | – |
-| C: L1 + FFT | – | – | – | – | – | – | – | – |
-| D: SNR-L1 + FFT | – | – | – | – | – | – | – | – |
+| pretrained (start point) | **25.15** | **0.843** | 0.131 | **25.31** | **0.779** | 16.19 | 3.644 | 0.627 |
+| A: L1 (control) | 24.31 | 0.842 | 0.132 | 24.89 | 0.777 | 16.61 | **3.644** | **0.627** |
+| B: SNR-weighted L1 (mine) | 24.32 | 0.842 | 0.131 | 24.91 | 0.777 | 16.62 | 3.704 | 0.626 |
+| C: L1 + FFT | 24.31 | 0.842 | **0.131** | 24.89 | 0.777 | 16.61 | 3.644 | 0.626 |
+| D: SNR-L1 + FFT | 24.32 | 0.842 | **0.131** | 24.91 | 0.777 | **16.62** | 3.696 | 0.626 |
 
 ## 4. Detection — YOLOv8m (COCO-pretrained, no fine-tuning) on ExDark test split
 
@@ -77,6 +81,17 @@ Only the loss differs between A-D. Differences below ~0.1-0.2 dB on LOL-v1 (15 i
 | Retinexformer | 0.628 | 0.340 | 0.676 | 0.553 |
 | SCI | 0.625 | 0.330 | 0.630 | 0.577 |
 | Zero-DCE | 0.603 | 0.317 | 0.711 | 0.513 |
+
+**200-image subset, Kaggle T4 (fine-tuning runs)**
+
+| Input to YOLO | mAP50↑ | mAP50-95↑ | Precision | Recall↑ |
+|---|---|---|---|---|
+| Raw (dark) | **0.706** | **0.378** | 0.704 | **0.637** |
+| FT-A control (L1) | 0.627 | 0.341 | 0.694 | 0.551 |
+| Retinexformer | 0.627 | 0.340 | 0.688 | 0.557 |
+| FT-C L1+FFT | 0.626 | 0.339 | 0.690 | 0.552 |
+| FT-B SNR-L1 (mine) | 0.626 | 0.339 | 0.695 | 0.556 |
+| FT-D SNR-L1+FFT | 0.626 | 0.340 | 0.689 | 0.558 |
 
 ## 5. Efficiency — one Tesla T4, network time only (GPU-synchronised, first image skipped)
 

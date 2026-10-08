@@ -111,7 +111,8 @@ def main():
     rows = []
     for m, label in ABL:
         n = [num(res.get((m, d), {}).get("niqe")) for d in up]
-        syn = res.get((m, "LOLv2-syn"), {}).get("psnr") if m != "Retinexformer" else None
+        # start point on LOLv2-syn: the SAME LOL-v1 weights (table 1's Retinexformer row uses LOLv2-syn-trained weights)
+        syn = res.get(("Retinexformer (LOL-v1 weights)" if m == "Retinexformer" else m, "LOLv2-syn"), {}).get("psnr")
         rows.append([label, res.get((m, "LOLv1"), {}).get("psnr"), res.get((m, "LOLv1"), {}).get("ssim"),
                      res.get((m, "LOLv1"), {}).get("lpips"), dark.get((m, "LOLv1"), {}).get("dark_psnr"),
                      dark.get((m, "LOLv1"), {}).get("dark_ssim"), syn,
@@ -119,7 +120,7 @@ def main():
                      det.get((ABL_DET[m],), {}).get("mAP50")])
     out += ["## 3. Ablation — fine-tuning from the released LOL-v1 weights (same data order, iterations, LR)", "",
             "Only the loss differs between A-D. Differences below ~0.1-0.2 dB on LOL-v1 (15 images) are within noise. "
-            "LOLv2-syn PSNR of the pretrained row is omitted (its table-1 value uses LOLv2-syn-trained weights). "
+            "LOLv2-syn: all rows use LOL-v1 weights (cross-dataset), incl. the start point. "
             "Detection rows were all run on one Kaggle T4 (raw on that GPU: see table 4).", "",
             table(hdr, rows, ["psnr", "ssim", "lpips", "dark_psnr", "dark_ssim", "psnr", "niqe", "mAP50"],
                   ["{:.2f}", "{:.3f}", "{:.3f}", "{:.2f}", "{:.3f}", "{:.2f}", "{:.3f}", "{:.3f}"]), ""]
