@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -135,21 +136,26 @@ def bullets(slide, items, x=0.6, y=1.5, w=6.0, h=5.2, size=19, gap=8):
         sub = it.startswith("  ")
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.space_after = Pt(gap)
+        # hanging indent: bullet sits at the left, wrapped lines line up with the first word
+        ind = Inches(0.55 if sub else 0.28)
+        pPr = p._p.get_or_add_pPr()
+        pPr.set("marL", str(int(ind))); pPr.set("indent", str(-int(Inches(0.28))))
+        pPr.append(pPr.makeelement(qn("a:buChar"), {"char": "–" if sub else "•"}))
         r = p.add_run()
-        r.text = ("–  " if sub else "•  ") + it.strip()
+        r.text = it.strip()
         r.font.size, r.font.name = Pt(size - 3 if sub else size), FONT
         r.font.color.rgb = INK2 if sub else INK
-        if sub:
-            p.level = 1
     return tb
 
 
-def picture(slide, path, x, y, w, h):
-    """Insert an image as large as possible inside the box (x, y, w, h), keeping its aspect ratio, centred."""
+def picture(slide, path, x, y, w, h, top_left=False):
+    """Insert an image as large as possible inside the box (x, y, w, h), keeping its aspect ratio.
+    Centred in the box by default; top_left=True pins it to the box's top-left corner (lines up with text)."""
     iw, ih = Image.open(path).size
     s = min(w / iw, h / ih)
     pw, ph = iw * s, ih * s
-    return slide.shapes.add_picture(str(path), Inches(x + (w - pw) / 2), Inches(y + (h - ph) / 2), Inches(pw), Inches(ph))
+    dx, dy = (0, 0) if top_left else ((w - pw) / 2, (h - ph) / 2)
+    return slide.shapes.add_picture(str(path), Inches(x + dx), Inches(y + dy), Inches(pw), Inches(ph))
 
 
 def table(slide, rows, x, y, w, col_w=None, size=13, bold_cells=(), row_h=0.36, header_fill=BLUE):
@@ -226,37 +232,94 @@ def build():
         "Q: Why this topic? A: Night photos, surveillance and driving all produce dark images, and detectors fail on them; "
         "it is an active research area with open problems such as noise.")
 
+    # 1b --------------------------------------------------------------- project at a glance (title -> 3 parts)
+    rp0 = {(r["method"], r["dataset"]): r for r in csv.DictReader(open(R / "reported_in_papers.csv"))}
+    s = slide("Project at a glance: what the title means", f"""
+SAY: Let me explain the title in three parts. Low-light image enhancement means turning a dark photo into one that looks well lit.
+First, TRANSFORMER-BASED: my main model is Retinexformer, a transformer built on Retinex theory. I reproduced it and compared it
+with eight other methods under one common protocol. Second, NOISE-AWARE: when you brighten a dark image, the noise in the darkest
+parts is amplified the most. My idea is a loss that finds noisy regions with a signal-to-noise map and gives them more weight during
+training. At midsem this is a pilot. Third, DOWNSTREAM DETECTION: instead of only measuring image quality, I ask whether enhancement
+actually helps a computer find objects in the dark, using YOLOv8 on the ExDark dataset. The rest of the talk follows these three parts.
+
+Q: What do you mean by noise-aware? A: The method uses an estimate of where the noise is (the SNR map) and treats those regions
+differently - in my case it gives them more weight in the training loss.
+Q: Why transformer and not CNN? A: Attention lets each region use information from the whole image, which helps decide how much to
+brighten each part; Retinexformer keeps the cost low by computing attention across channels instead of pixels.
+Q: Why detection? A: Real uses - surveillance, driving - care whether machines can see objects, not only whether the photo looks nice.""",
+              "Overview")
+    text(s, 0.6, 1.35, 12.2, 0.5, "Goal: make dark photos bright and clean - without amplifying noise - and check whether this helps a machine see.",
+         17, INK2)
+    cards = [("Transformer-based enhancement", "Retinexformer (ICCV 2023) as the main model",
+              "Reproduce it and compare with 8 baselines under one protocol (quality, no-reference, speed)",
+              f"Reproduced: {v('Retinexformer', 'LOLv1', 'psnr', 2)} dB vs paper {float(rp0[('Retinexformer', 'LOLv1')]['psnr']):.2f} → pipeline verified"),
+             ("Noise-aware", "SNR-weighted training loss",
+              "SNR map finds dark, noisy regions; the training loss gives them more weight; compared with a control run",
+              "Pilot tested; next: noise awareness inside the network"),
+             ("Downstream detection evaluation", "Does enhancement help a detector?",
+              "YOLOv8m on ExDark (1,200 dark images, 12 classes): raw images vs every enhanced version",
+              f"Result: raw images best (mAP50 {float(DET[('raw',)]['mAP50']):.3f}); no enhancer helps")]
+    for i, (head, sub, body, status) in enumerate(cards):
+        x = 0.6 + i * 4.1
+        hd = s.shapes.add_shape(1, Inches(x), Inches(2.05), Inches(3.85), Inches(0.75))
+        hd.fill.solid(); hd.fill.fore_color.rgb = BLUE; hd.line.fill.background()
+        text(s, x, 2.05, 3.85, 0.75, head, 17, RGBColor(0xFF, 0xFF, 0xFF), True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+        bd = s.shapes.add_shape(1, Inches(x), Inches(2.8), Inches(3.85), Inches(2.55))
+        bd.fill.solid(); bd.fill.fore_color.rgb = LIGHT; bd.line.fill.background()
+        text(s, x + 0.15, 2.9, 3.55, 0.5, sub, 15, INK, True)
+        text(s, x + 0.15, 3.62, 3.55, 1.0, body, 14, INK2)
+        text(s, x + 0.15, 4.55, 3.55, 0.75, status, 14, BLUE, True)
+    # simple flow of the whole project: dark photo -> enhancer -> two kinds of evaluation
+    flow = ["Dark photo", "Enhancer\n(Retinexformer + noise-aware loss)", "Image quality\nPSNR, SSIM, LPIPS, NIQE", "Object detection\nYOLOv8 mAP"]
+    xs, ws = [0.6, 3.1, 7.3, 10.55], [2.0, 3.7, 2.9, 2.2]
+    for i, (lab, x, w) in enumerate(zip(flow, xs, ws)):
+        b = s.shapes.add_shape(1, Inches(x), Inches(5.75), Inches(w), Inches(0.95))
+        b.fill.solid(); b.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF); b.line.color.rgb = BLUE; b.line.width = Pt(1.5)
+        text(s, x, 5.75, w, 0.95, lab, 14, INK, i in (0, 1), PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+    text(s, 2.6, 5.95, 0.5, 0.5, "→", 24, BLUE, True, PP_ALIGN.CENTER)
+    text(s, 6.8, 5.95, 0.5, 0.5, "→", 24, BLUE, True, PP_ALIGN.CENTER)
+    text(s, 10.2, 5.95, 0.35, 0.5, "+", 24, BLUE, True, PP_ALIGN.CENTER)
+
     # 2 ---------------------------------------------------------------- motivation
     s = slide("Why low-light enhancement?", """
-SAY: On the left is a real photo from the LOL dataset taken in very low light; on the right the same photo after
-Retinexformer. Low-light images appear in phone night photography, surveillance cameras and autonomous driving. They are
-not only hard for people to see - object detectors also work much worse in the dark. So we want methods that brighten the
-image, keep colours natural and do not amplify noise.
+SAY: On the left is a real photo from the LOL test set taken in very low light; on the right is the same photo after I ran
+Retinexformer on it. Dark images like this appear in phone night photography, surveillance cameras, night driving and robots.
+They are hard for people to see, and object detectors also work much worse in the dark. And simply brightening is not enough,
+because the noise is brightened too - that is the next slide.
 
 Q: Can't we just increase the exposure? A: Longer exposure causes motion blur, and higher ISO adds noise; enhancement
-after capture avoids both but must deal with the noise that is already there.""", "Motivation")
-    pic = picture(s, ASSETS / "before_after.png", 0.4, 1.45, 7.9, 5.0)
-    caption(s, 0.4, 0, 7.9, "LOL-v1 test image 79: dark input (left) and Retinexformer output (right)", under=pic)
-    bullets(s, ["Phone night photography", "Surveillance and security cameras", "Driving at night",
-                "Machine vision: detectors fail in the dark", "Goal: bright, natural colours, no amplified noise"],
-            x=8.6, y=1.7, w=4.4, size=18)
+after capture avoids both but must deal with the noise that is already there.
+Q: Is this image from your results? A: Yes - the left is the LOL-v1 test input, the right is the output of Retinexformer
+(released weights) that I ran myself.""", "Motivation")
+    pic = picture(s, ASSETS / "before_after.png", 0.6, 1.45, 12.1, 3.95, top_left=True)
+    caption(s, 0.6, 0, 12.1, "Our run: LOL-v1 test image 79 - dark input (left), Retinexformer output (right)", under=pic)
+    text(s, 0.6, 5.95, 3.6, 0.45, "Where dark images occur:", 18, BLUE, True)
+    bullets(s, ["Phone night photography", "Surveillance cameras"], x=4.3, y=5.95, w=4.0, size=17, gap=4)
+    bullets(s, ["Night driving, robots, drones", "Detectors miss objects in the dark"], x=8.4, y=5.95, w=4.5, size=17, gap=4)
 
     # 3 ---------------------------------------------------------------- problem
     s = slide("The problem: darkness + noise + colour shift", """
 SAY: Dark images have three problems at once. They are dark, they are noisy because the sensor collected few photons,
 and artificial light changes the colours. The key point is on the right: if I simply multiply the dark region by six,
-the noise is multiplied too - you can see the coloured speckles. A simple enhancer like Zero-DCE also brightens the noise.
+the noise is multiplied too - you can see the grainy speckles, and the white wall looks grey-green. A simple enhancer like
+Zero-DCE also brightens the noise.
 The ground truth, taken with a long exposure, is clean. So enhancement must brighten AND denoise.
 
 Q: Where does the noise come from? A: Mostly photon shot noise and sensor read noise; with few photons the random
 fluctuation is large relative to the signal, i.e. the signal-to-noise ratio (SNR) is low.""", "Problem")
-    pic = picture(s, ASSETS / "noise_where.png", 0.6, 1.45, 4.6, 3.1)
-    caption(s, 0.6, 0, 4.6, "Red box: dark region (LOL-v1 79)", under=pic)
-    pic = picture(s, ASSETS / "noise_zoom.png", 5.5, 1.45, 7.4, 3.1)
-    caption(s, 5.5, 0, 7.4, "Same crop:  input × 6  |  Zero-DCE  |  ground truth", under=pic)
-    bullets(s, ["Dark: little light reaches the sensor", "Noisy: few photons → low signal-to-noise ratio (SNR)",
-                "Colour shift / over-exposed lamps", "Brightening multiplies the noise as much as the signal"],
-            x=0.6, y=5.05, w=12, size=17, gap=2)
+    pic = picture(s, ASSETS / "noise_where.png", 0.6, 1.45, 4.6, 3.1, top_left=True)
+    caption(s, 0.6, 0, 4.6, "Our LOL-v1 test image 79; red box = dark region zoomed on the right", under=pic)
+    # three crops of the red box, each with its own label above it
+    pic = picture(s, ASSETS / "noise_zoom.png", 5.5, 1.85, 7.4, 2.2, top_left=True)
+    cw = pic.width / 914400 * 420 / 1300  # one crop's width in inches (3 crops of 420 px + 2 gaps of 20 px)
+    for k, lab in enumerate(["Input × 6 (just brighter)", "Zero-DCE", "Ground truth"]):
+        text(s, 5.5 + k * (cw + pic.width / 914400 * 20 / 1300), 1.42, cw, 0.4, lab, 13, INK2, True, PP_ALIGN.CENTER)
+    bullets(s, ["Dark: little light reaches the sensor, details are hidden",
+                "Noisy: few photons → low SNR (signal-to-noise ratio) → speckles",
+                "Colour shift: weak light distorts colours (grey-green instead of white)"],
+            x=5.5, y=3.95, w=7.4, size=16, gap=4)
+    text(s, 5.5, 5.45, 7.4, 0.9, "Brightening multiplies noise as much as signal → enhancement must brighten AND denoise",
+         17, BLUE, True)
 
     # 4 ---------------------------------------------------------------- literature timeline
     s = slide("How the field evolved", """
@@ -444,9 +507,10 @@ methods that do not use the ground truth.""", "Results")
 
     # 13 --------------------------------------------------------------- qualitative
     s = slide("Qualitative results", """
-SAY: Here are three LOL-v1 images with zoomed crops of dark regions. Zero-DCE and SCI make the image bright but full of coloured
-noise. The transformers remove the noise but blur fine details. GSAD keeps the most texture but adds a colour cast - see the green
-tint in the middle row. My fine-tuned runs A and B look the same as each other.
+SAY: Here are two LOL-v1 test images (79 and 493), each with a zoomed crop of a dark region below it. Zero-DCE and SCI make the
+image bright but the crops are full of coloured noise. Retinexformer and my fine-tuned run B remove the noise but smooth fine
+detail - for example the small green text on the tube in the bottom crop is lost. GSAD is the brightest and keeps the most texture,
+but its colours drift - see the greenish background in the bottom crop. My run B looks almost identical to Retinexformer.
 
 Q: How were the zoom boxes chosen? A: Automatically: a region that is dark in the input but has detail in the ground truth, so the
 crop shows what each method recovers.""", "Results")
