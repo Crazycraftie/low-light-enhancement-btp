@@ -158,7 +158,8 @@ ground truth is clean. So enhancement must brighten AND denoise."
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 5 — How the field evolved
 
-**On the slide:** five boxes in a timeline (Classical → Supervised CNN → Zero-shot → Transformers → Diffusion), three bullets.
+**On the slide:** five boxes in a timeline (Classical → Supervised CNN → Zero-shot → Transformers → Diffusion), method names
+under each, a row of orange boxes "What each stage left open", two bullets.
 
 **Explain each stage:**
 - **Classical (HE, CLAHE, Retinex/LIME):** hand-made rules. HE spreads the brightness histogram; CLAHE does it locally with a
@@ -167,8 +168,12 @@ ground truth is clean. So enhancement must brighten AND denoise."
 - **Zero-shot (EnlightenGAN, Zero-DCE, RUAS, SCI):** no pairs needed; tiny and fast; but they do not remove noise.
 - **Transformers (SNR-Aware, LLFormer, Retinexformer)** — highlighted: attention captures long-range relations → best fidelity.
 - **Diffusion (GSAD, Diff-Retinex):** generative models that create realistic texture, but run the network many times → slow.
-**Bullets:** the one-line story of the field; the survey (Li et al., TPAMI 2022) says no method wins everywhere and noise in dark
-regions is still open; my main model is Retinexformer.
+**Orange row — what each stage left open (= why the next stage came):** classical: no learning, no noise model → CNNs learn
+from data; CNNs: need paired dark/bright data → zero-shot methods need no pairs; zero-shot: brighten the noise too →
+transformers restore better; transformers: not noise-aware, and attention is costly (Retinexformer fixes the cost with channel
+attention, not the noise); diffusion: very slow because it runs the network many times.
+**Bullets:** the survey (Li et al., TPAMI 2022) says no method wins everywhere and noise in dark regions is still open; this
+project takes Retinexformer as the main model and tries to make it noise-aware.
 
 **Say it:** "The field moved from hand-made rules, to learning from pairs, to methods that need no pairs, to transformers with
 long-range attention, to slow but realistic diffusion models. Transformers are the current best for fidelity, so my main model
@@ -206,23 +211,26 @@ SNR-Aware is the only one that explicitly measures noise — that idea inspired 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 7 — Research gap and objectives of this midsem
 
-**On the slide:** left "Gaps" (4 bullets), right "Objectives (first half)" (5 bullets).
+**On the slide:** a table "Gap in the literature | What I did in the first half | Shown in", and one blue line.
 
-**Explain the gaps:**
-1. *Noise amplification in dark regions is unsolved* — the survey says so; slide 4 shows it.
-2. *Retinexformer: illumination-aware, not noise-aware* — it uses brightness to guide attention, but a dark smooth wall and a
-   dark noisy region look the same to it.
-3. *Methods judged by PSNR/SSIM, rarely by a machine task* — papers seldom check whether detection improves.
-4. *Diffusion: quality at a large speed cost* — many network passes per image.
-**Explain the objectives** (each answers a gap): reproduce Retinexformer + 8 baselines; evaluate all with ONE script on many
-metrics (PSNR, SSIM, LPIPS, NIQE, dark regions, speed); detection study with YOLOv8; test the SNR-weighted loss against a control;
-use the evidence to plan the second half.
+**Explain each row:**
+1. *Noise amplification in dark regions is unsolved* → I designed an SNR-weighted loss and tested it against a control run
+   → shown in "My idea" and "Ablation".
+2. *Retinexformer: illumination-aware, not noise-aware* — it uses brightness to guide attention, but a dark smooth wall and a dark
+   noisy region look the same to it → I keep Retinexformer as the base and add noise information through the SNR map → "Main model".
+3. *Methods judged by PSNR/SSIM, rarely by a machine task* → detection study with YOLOv8 + my dark-region PSNR → "Detection".
+4. *Diffusion: quality at a large speed cost* → I timed every method on the same GPU → "Efficiency".
+5. *Papers use different test protocols* (e.g. GSAD's ground-truth trick) → I reproduced Retinexformer + 8 baselines and scored
+   all of them with ONE script → "Results", "Reproduction".
+**Blue line:** the second-half plan is based on this evidence.
 
-**Say it:** "Four gaps motivate the project, and each objective answers one of them."
+**Say it:** "Each row pairs a gap with what I did about it and where I show it."
 
 **Questions:**
 - *Difference between dark and noisy?* A dark smooth wall can be clean; a dark textured region can be very noisy. Illumination
   = how bright; SNR = how much of the signal is noise.
+- *Is "different protocols" really a gap?* Yes — my reproduction shows GSAD's published PSNR includes a 4.85 dB boost from
+  ground-truth brightness, so tables in papers are not directly comparable.
 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 8 — Background: Retinex theory and attention cost
@@ -237,7 +245,8 @@ use the evidence to plan the second half.
 **Explain the right (attention cost):**
 - Attention: every token (pixel) builds a Query, Key, Value. QKᵀ compares every token with every other token → an N × N matrix.
 - 600×400 image → N = 240,000 pixels → N² ≈ 58 billion entries → far too much memory.
-- Retinexformer's trick: attention across channels, KᵀQ is C × C (C = 40–160) → small; cost grows only linearly with image size.
+- Retinexformer's trick: attention across channels, KᵀQ is only C × C (C = 40, 80 or 160 in its three levels) → small;
+  so the cost grows only linearly with image size.
 
 **Say it:** "Retinex says image = reflectance × illumination; enhancement replaces the illumination. Normal attention compares every
 pixel with every other pixel, which is impossible for a 600×400 image; Retinexformer compares channels instead, so it is cheap."
@@ -322,13 +331,13 @@ min-max, because min-max gave 93% of pixels the same weight; and dividing by the
 - *LOL-v2 real / syn* — 100 + 100 paired test images (real captures and synthetic darkening).
 - *LIME / DICM / MEF* — 10 / 69 / 17 real dark photos without ground truth → only NIQE.
 - *ExDark* — real night photos with object boxes in 12 classes (bicycle, boat, bottle, bus, car, cat, chair, cup, dog,
-  motorbike, people, table); 1,200 images for detection (200 for slow GSAD).
+  motorbike, people, table); 1,200 images for detection ("GSAD: 200" because GSAD is slow).
 **Explain the metric table:**
 - *PSNR* (↑) — pixel error in decibels; higher = closer to ground truth.
 - *SSIM* (↑, 0–1) — compares local structure, contrast and brightness.
 - *LPIPS* (↓) — distance between deep-network features; lower = looks more similar to humans.
 - *NIQE* (↓) — "naturalness" without ground truth; lower = more natural.
-- *Dark-30% PSNR* (↑) — PSNR only on the 30% darkest pixels of the input (where noise is worst); my addition.
+- *Dark-30% PSNR* (↑) — PSNR only on the darkest 30% of pixels of the input (where noise is worst); my addition.
 - *mAP50* (↑) — detection accuracy: a box counts as correct if it overlaps the true box by ≥ 50% (IoU ≥ 0.5); averaged
   over classes.
 **Hardware:** free Kaggle Tesla T4 GPU for training and all timings; laptop for evaluation.
@@ -341,7 +350,8 @@ min-max, because min-max gave 93% of pixels the same weight; and dividing by the
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 12 — Quantitative results (paired test sets)
 
-**On the slide:** one table: 9 rows × (LOL-v1 PSNR/SSIM/LPIPS, LOL-v2-real PSNR/SSIM/LPIPS). Best value in bold.
+**On the slide:** one table: 9 rows × (LOL-v1 PSNR/SSIM/LPIPS, LOL-v2-real PSNR/SSIM/LPIPS). Best value in bold. A blue
+summary line: "Retinexformer: best PSNR · GSAD: best LPIPS (most natural-looking) · classical / zero-shot ≈ 15 dB".
 
 **Explain the rows:**
 - *Input* (7.77 dB) — the dark image itself; the starting point.
@@ -364,19 +374,24 @@ min-max, because min-max gave 93% of pixels the same weight; and dividing by the
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 13 — Reproduction and protocol findings
 
-**On the slide:** table "Paper vs Ours" (PSNR, LOL-v1) and three bullets.
+**On the slide:** left: table "Paper vs Ours" (PSNR, LOL-v1) and a blue conclusion line; right: three findings and a picture
+pair proving the dataset overlap.
 
 **Explain the table:**
-- Retinexformer 25.16 → 25.15; SNR-Aware 24.61 → 24.61; LLFormer 23.65 → 23.65: **reproduced** (my pipeline is correct).
+- Retinexformer 25.16 → 25.15; SNR-Aware 24.61 → 24.61; LLFormer 23.65 → 23.65: **reproduced**.
 - GSAD (GT trick) 27.84 → 27.57: with the authors' test trick I almost reproduce their number.
-- GSAD (real output) – → 22.73: without the trick.
-**Explain the bullets:**
-1. *GSAD's GT-brightness trick: +4.85 dB on LOL-v1.* Its test script rescales every output to the ground truth's average
-   brightness — information a real camera never has. Worth 4.1–8.5 dB depending on the dataset.
-2. *LOL-v2-real test: 91/100 images are LOL-v1 training images.* I compared thumbnails. Any LOL-v1-trained model would be
-   tested on images it has seen.
-3. *My re-training: 23.10 dB vs released 25.15 (others: 23.45).* Same official config, 150k iterations; another user on the
-   authors' GitHub (issue #132) also got about 23.45.
+- GSAD (real output) – → 22.73: without the trick (the paper does not report this).
+**Blue line:** "Released models reproduce their papers → my evaluation pipeline is correct" (see D4).
+**Explain the three findings:**
+1. *GSAD's test rescales outputs to the ground-truth brightness: +4.85 dB (LOL-v1).* Its test script scales every output so its
+   average brightness equals the ground truth's — information a real camera never has. Worth 4.1–8.5 dB depending on the dataset.
+2. *LOL-v2-real: 91/100 test images are LOL-v1 training images.* I compared small thumbnails of every LOL-v2-real test image with
+   every LOL-v1 training image: 91 match exactly (difference 0), even with the same file numbers. So any LOL-v1-trained model
+   would be "tested" on images it has seen → those rows are excluded.
+3. *My re-training: 23.10 dB vs released 25.15 (GitHub #132: 23.45).* Same official config, 150k iterations; another user on the
+   authors' GitHub got 23.45.
+**Explain the picture:** left = LOL-v2-real TEST image 00771, right = LOL-v1 TRAIN image 771 — the same photo (a roof structure)
+in both datasets. This is the proof of finding 2, from our own data.
 
 **Questions:**
 - *Why is your re-training 2 dB lower?* Run-to-run variance on a tiny dataset (485 train / 15 test), PyTorch 2 vs 1.11, a
@@ -384,6 +399,8 @@ min-max, because min-max gave 93% of pixels the same weight; and dividing by the
   is not a metric bug.
 - *Is GSAD cheating?* It follows an older convention (KinD, LLFlow) and states it in its README — but it is not comparable with
   methods that do not use the ground truth.
+- *How did you find the overlap?* By comparing 32×32 grey thumbnails of all 100 test images against all 485 training images;
+  91 had zero difference.
 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 14 — Qualitative results
@@ -405,7 +422,8 @@ detail. GSAD keeps texture but drifts in colour. My run B looks like Retinexform
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 15 — Does enhancement help a detector? (ExDark, YOLOv8m)
 
-**On the slide:** a table, three bullets, and a picture (3 ExDark images × Raw | Retinexformer | FT SNR-L1 (B)).
+**On the slide:** a table, three bullets, and a picture (3 ExDark images × Raw | Retinexformer | FT SNR-L1 (B)) with the
+caption "Our YOLOv8m detections: bus missed in all versions; enhancement turns the white blanket yellow".
 
 **Explain the table:**
 - mAP50 on 1,200 images: Raw **0.662** > Retinexformer 0.603 > SCI 0.595 > Zero-DCE 0.572.
@@ -468,7 +486,9 @@ y-axis = LOL-v1 PSNR. Each dot is a method, labelled with its parameter count. T
 - Retinexformer: top, at 151 ms with 1.61 M params — best trade-off.
 - LLFormer: 874 ms, 24.55 M params, lower PSNR.
 - GSAD: far right (2.4 s with 10 steps, 4.9 s with 20 steps), 17.44 M params, lower PSNR.
-**Bullets:** SCI 1.5 ms but low quality; Retinexformer 151 ms best PSNR; LLFormer 874 ms, 24.5 M params; GSAD 2.4–4.9 s per image.
+**Bullets:** SCI 1.5 ms and Zero-DCE 19 ms, both low quality; Retinexformer 151 ms, best PSNR; LLFormer 874 ms, 24.5 M params;
+GSAD 2.4–4.9 s per image.
+**Blue line:** Retinexformer is the best quality–speed trade-off; GSAD is 16–32× slower (2,360 or 4,874 ms ÷ 151 ms) for lower PSNR.
 
 **Questions:**
 - *Why is GSAD slow?* Diffusion runs the network once per sampling step (10–20 steps); Retinexformer runs once.
@@ -520,6 +540,7 @@ y-axis = LOL-v1 PSNR. Each dot is a method, labelled with its parameter count. T
 - Raw images beat every enhancer for YOLOv8m (mAP50 0.662) → looks better ≠ detects better.
 - SNR-weighted loss: consistent but negligible gain in dark regions → change only the loss is not enough.
 - Next: noise awareness inside attention, larger tests.
+- Then "Thank you — questions?" and the key references (full list in the report).
 
 **Questions:**
 - *Main contribution so far?* A careful, controlled evaluation — including detection and dark regions — and a tested, explained

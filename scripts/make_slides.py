@@ -99,7 +99,13 @@ def make_assets():
     ImageDraw.Draw(full).rectangle(box, outline=(227, 73, 72), width=4)
     full = Image.fromarray(np.clip(np.asarray(full, dtype=np.float32) * np.array([1, 1, 1]) ** 1, 0, 255).astype(np.uint8))
     full.save(ASSETS / "noise_where.png")
-    # 3) slide-sized comparison grid: 2 images, key methods only (readable on a projector)
+    # 3) overlap proof: a LOL-v2-real TEST image and the identical LOL-v1 TRAIN image (91/100 test images match exactly)
+    a = Image.open(ROOT / "data/LOLv2/Real_captured/Test/Normal/00771.png").convert("RGB")
+    b = Image.open(ROOT / "data/LOLv1/Train/target/771.png").convert("RGB").resize(a.size)
+    pair = Image.new("RGB", (2 * a.width + 30, a.height), "white")
+    pair.paste(a, (0, 0)); pair.paste(b, (a.width + 30, 0))
+    pair.save(ASSETS / "overlap_pair.png")
+    # 4) slide-sized comparison grid: 2 images, key methods only (readable on a projector)
     import subprocess, sys
     subprocess.run([sys.executable, str(ROOT / "scripts/make_grid.py"), "--dataset", "LOLv1", "--images", "79", "493",
                     "--methods", "Zero-DCE", "SCI", "Retinexformer", "GSAD", "FT SNR-L1 (B, mine)",
@@ -335,15 +341,22 @@ see a local neighbourhood.""", "Literature")
               ("Diffusion", "GSAD,\nDiff-Retinex")]
     for i, (a, b) in enumerate(stages):
         x = 0.6 + i * 2.5
-        box = s.shapes.add_shape(1, Inches(x), Inches(2.3), Inches(2.2), Inches(1.0))
+        box = s.shapes.add_shape(1, Inches(x), Inches(1.6), Inches(2.2), Inches(0.9))
         box.fill.solid(); box.fill.fore_color.rgb = BLUE if i == 3 else LIGHT; box.line.fill.background()
-        text(s, x, 2.3, 2.2, 1.0, a, 17, RGBColor(0xFF, 0xFF, 0xFF) if i == 3 else INK, True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
-        text(s, x, 3.45, 2.2, 1.0, b, 14, INK2, align=PP_ALIGN.CENTER)
+        text(s, x, 1.6, 2.2, 0.9, a, 17, RGBColor(0xFF, 0xFF, 0xFF) if i == 3 else INK, True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+        text(s, x, 2.6, 2.2, 0.9, b, 14, INK2, align=PP_ALIGN.CENTER)
         if i < 4:
-            text(s, x + 2.18, 2.5, 0.35, 0.6, "→", 24, BLUE, True, PP_ALIGN.CENTER)
-    bullets(s, ["Hand-made rules → learned from data → no pairs needed → long-range attention → generative",
-                "Survey (Li et al., TPAMI 2022): no method wins everywhere; noise in dark regions remains open",
-                "This project: Retinexformer (ICCV 2023) as the main model"], x=0.6, y=4.75, w=12.2, size=17)
+            text(s, x + 2.18, 1.75, 0.35, 0.6, "→", 24, BLUE, True, PP_ALIGN.CENTER)
+    # what each stage left open = why the next stage came
+    text(s, 0.6, 3.55, 12.2, 0.4, "What each stage left open", 15, BLUE, True)
+    for i, t in enumerate(["No learning,\nno noise model", "Needs paired\ndark/bright data", "Brightens the\nnoise too",
+                           "Not noise-aware;\nattention is costly", "Very slow\n(many passes)"]):
+        x = 0.6 + i * 2.5
+        b = s.shapes.add_shape(1, Inches(x), Inches(3.95), Inches(2.2), Inches(0.85))
+        b.fill.solid(); b.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF); b.line.color.rgb = ORANGE; b.line.width = Pt(1.25)
+        text(s, x, 3.95, 2.2, 0.85, t, 14, INK, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    bullets(s, ["Survey (Li et al., TPAMI 2022): no method wins everywhere; noise in dark regions remains open",
+                "This project: Retinexformer (ICCV 2023) as the main model, made noise-aware"], x=0.6, y=5.25, w=12.2, size=17)
 
     # 5 ---------------------------------------------------------------- literature table
     s = slide("Key methods compared in this project", """
@@ -367,19 +380,20 @@ and weights, and it is built on Retinex theory, which makes it explainable.""", 
     s = slide("Research gap and objectives of this midsem", """
 SAY: Four gaps motivate the project. First, noise in dark regions is still an open problem. Second, Retinexformer knows where the
 image is dark but not where it is noisy. Third, papers mostly report PSNR and SSIM; few check whether enhancement helps a machine.
-Fourth, diffusion models trade a lot of speed for quality. My midsem objectives follow directly: reproduce, evaluate fairly
-on many axes including detection, and test a noise-aware loss with a proper control experiment.
+Fourth, diffusion models trade a lot of speed for quality. Each row of the table pairs a gap with what I did about it in the first half
+and the slide where I show it: a noise-aware loss with a control run, detection and dark-region metrics, speed on one GPU, and a fair
+reproduction of all methods with one script.
 
 Q: What is the difference between dark and noisy? A: A dark but smooth wall can be clean; a textured dark region can be very
 noisy. Illumination tells you brightness, SNR tells you how much of the signal is noise.""", "Motivation")
-    text(s, 0.6, 1.5, 5.9, 0.5, "Gaps", 20, BLUE, True)
-    bullets(s, ["Noise amplification in dark regions is unsolved", "Retinexformer: illumination-aware, not noise-aware",
-                "Methods judged by PSNR/SSIM, rarely by a machine task", "Diffusion: quality at a large speed cost"],
-            x=0.6, y=2.05, w=5.9, size=17)
-    text(s, 6.9, 1.5, 5.9, 0.5, "Objectives (first half)", 20, BLUE, True)
-    bullets(s, ["Reproduce Retinexformer + 8 baselines", "One protocol: PSNR, SSIM, LPIPS, NIQE, dark regions, speed",
-                "Detection study: does enhancement help YOLOv8?", "Noise-aware SNR-weighted loss, tested against a control",
-                "Plan the second half from the evidence"], x=6.9, y=2.05, w=6.0, size=17)
+    rows = [["Gap in the literature", "What I did in the first half", "Shown in"],
+            ["Noise amplification in dark regions is unsolved", "SNR-weighted loss, tested against a control run", "My idea, Ablation"],
+            ["Retinexformer: illumination-aware, not noise-aware", "Retinexformer as base; SNR map adds noise information", "Main model"],
+            ["Methods judged by PSNR/SSIM, rarely by a machine task", "Detection study (YOLOv8) + dark-region PSNR", "Detection"],
+            ["Diffusion: quality at a large speed cost", "Speed of every method on one GPU", "Efficiency"],
+            ["Papers use different test protocols", "Reproduce Retinexformer + 8 baselines with one script", "Results, Reproduction"]]
+    table(s, rows, 0.6, 1.6, 12.1, [4.9, 4.9, 2.3], size=15, row_h=0.62)
+    text(s, 0.6, 5.6, 12.1, 0.5, "Second half: plan the next step from this evidence (see Plan).", 17, BLUE, True)
 
     # 7 ---------------------------------------------------------------- background
     s = slide("Background: Retinex theory and attention cost", """
@@ -396,12 +410,13 @@ softmax does not saturate.""", "Background")
     text(s, 0.6, 2.1, 6.0, 0.6, "I  =  R  ⊙  L", 30, INK, True, PP_ALIGN.CENTER)
     bullets(s, ["I: observed image", "R: reflectance = object colours", "L: illumination = light on the scene",
                 "Enhance: estimate L, replace by brighter light", "Real images: noise in R and L, amplified when L is small"],
-            x=0.6, y=2.9, w=6.0, size=16, gap=4)
+            x=0.6, y=2.9, w=6.0, size=17, gap=6)
     text(s, 6.9, 1.5, 6.0, 0.5, "Why attention is costly", 20, BLUE, True)
     text(s, 6.9, 2.1, 6.0, 0.6, "softmax(QKᵀ/√d)·V", 26, INK, True, PP_ALIGN.CENTER)
     bullets(s, ["QKᵀ is N × N  (N = number of pixels)", "600×400 image: N = 240,000 → 58 billion entries",
-                "Channel attention: softmax(KᵀQ) is C × C", "→ cost grows linearly with image size"],
-            x=6.9, y=2.9, w=6.0, size=16, gap=4)
+                "Channel attention: softmax(KᵀQ) is only C × C",
+                "So the cost grows only linearly with image size"],
+            x=6.9, y=2.9, w=6.0, size=17, gap=6)
 
     # 8 ---------------------------------------------------------------- retinexformer
     s = slide("Main model: Retinexformer (ICCV 2023)", f"""
@@ -446,13 +461,13 @@ protocol rules: no ground-truth information at test time, no checkpoint chosen b
 Q: Why is LOL-v2-real excluded for models trained on LOL-v1? A: I found that 91 of its 100 test images are LOL-v1 training images.
 Q: Why does SSIM differ from PSNR? A: PSNR is pixel error; SSIM compares local structure, contrast and brightness.""", "Setup")
     rows = [["Data", "Use", "Test images"], ["LOL-v1", "paired, main", "15"], ["LOL-v2 real / syn", "paired", "100 / 100"],
-            ["LIME / DICM / MEF", "unpaired, NIQE", "10 / 69 / 17"], ["ExDark (12 classes)", "detection", "1,200 (200 for GSAD)"]]
-    table(s, rows, 0.6, 1.55, 6.3, [2.3, 2.0, 2.0], size=14, row_h=0.46)
+            ["LIME / DICM / MEF", "unpaired, NIQE", "10 / 69 / 17"], ["ExDark (12 classes)", "detection", "1,200 (GSAD: 200)"]]
+    table(s, rows, 0.6, 1.55, 6.3, [2.3, 1.9, 2.1], size=14, row_h=0.46)
     rows = [["Metric", "Measures", "Better"], ["PSNR", "pixel fidelity", "↑"], ["SSIM", "structure", "↑"], ["LPIPS", "perceptual distance", "↓"],
-            ["NIQE", "naturalness (no GT)", "↓"], ["Dark-30% PSNR", "darkest pixels only", "↑"], ["mAP50", "detection accuracy", "↑"]]
-    table(s, rows, 7.3, 1.55, 5.5, [1.9, 2.6, 1.0], size=14, row_h=0.42)
+            ["NIQE", "naturalness (no GT)", "↓"], ["Dark-30% PSNR", "darkest 30% of pixels", "↑"], ["mAP50", "detection accuracy", "↑"]]
+    table(s, rows, 7.3, 1.55, 5.5, [1.9, 2.6, 1.0], size=14, row_h=0.46)
     bullets(s, ["Hardware: Kaggle Tesla T4 (training, timing); laptop for evaluation", "Rules: no GT at test time · no test-chosen checkpoint · no train/test overlap"],
-            x=0.6, y=4.75, w=12.2, size=16, gap=4)
+            x=0.6, y=5.15, w=12.2, size=16, gap=4)
 
     # 11 --------------------------------------------------------------- quantitative
     meth = [("Input", "Input"), ("Gamma", "Gamma"), ("Zero-DCE", "Zero-DCE"), ("SCI", "SCI"), ("SNR-Aware (released)", "SNR-Aware*"),
@@ -475,7 +490,9 @@ punishes brightness errors heavily. Q: Why are dashes there? A: Those models wer
 LOL-v2-real's test set.""", "Results")
     table(s, rows, 0.6, 1.55, 12.1, [3.0, 1.55, 1.25, 1.25, 2.1, 1.45, 1.5], size=14, row_h=0.44,
           bold_cells=best_cells(rows, [1, 2, 3, 4, 5, 6], [True, True, False, True, True, False]))
-    caption(s, 0.6, 6.15, 12.1, "* images released by the SNR-Aware authors.  Best value in bold.  –: train/test overlap (see setup).", 13)
+    caption(s, 0.6, 5.98, 12.1, "* images released by the SNR-Aware authors.  Best value in bold.  –: train/test overlap (see setup).", 13)
+    text(s, 0.6, 6.4, 12.1, 0.45, "Retinexformer: best PSNR  ·  GSAD: best LPIPS (most natural-looking)  ·  classical / zero-shot ≈ 15 dB",
+         16, BLUE, True)
 
     # 12 --------------------------------------------------------------- reproduction / protocol findings
     rep = list(csv.DictReader(open(R / "reported_in_papers.csv")))
@@ -485,7 +502,7 @@ SAY: Before trusting any comparison I checked that I reproduce the published num
 their papers to 0.01 dB. GSAD's paper reports {float(rp[('GSAD','LOLv1')]['psnr']):.2f} dB, but its test script rescales every output
 to the ground truth's average brightness - information a real camera never has. With that trick I get
 {v('GSAD (GT-mean, authors protocol)','LOLv1','psnr',2)}, without it {v('GSAD','LOLv1','psnr',2)} dB. Second finding: 91 of the 100
-LOL-v2-real test images are copies of LOL-v1 training images. Third: training Retinexformer from scratch myself gives
+LOL-v2-real test images are copies of LOL-v1 training images - on the right is one example, the same photo in both sets. Third: training Retinexformer from scratch myself gives
 {v('Retinexformer (my training)','LOLv1','psnr',2)} dB, not 25 - another user on the authors' GitHub reported 23.45 dB.
 
 Q: Why is your re-training 2 dB lower? A: Likely run-to-run variance on a tiny dataset (485 train, 15 test images), different
@@ -500,10 +517,13 @@ methods that do not use the ground truth.""", "Results")
     rows.append(["GSAD, LOL-v1 (real output)", "–", v("GSAD", "LOLv1", "psnr", 2)])
     table(s, rows, 0.6, 1.6, 6.3, [3.5, 1.4, 1.4], size=15, row_h=0.5)
     caption(s, 0.6, 4.7, 6.3, "PSNR in dB on LOL-v1", 13)
-    bullets(s, [f"GSAD's GT-brightness trick: +{float(RES[('GSAD (GT-mean, authors protocol)','LOLv1')]['psnr']) - float(RES[('GSAD','LOLv1')]['psnr']):.2f} dB on LOL-v1",
-                "LOL-v2-real test: 91 / 100 images are LOL-v1 training images",
-                f"My re-training: {v('Retinexformer (my training)','LOLv1','psnr',2)} dB vs released {v('Retinexformer','LOLv1','psnr',2)} (others: 23.45)"],
-            x=7.2, y=1.7, w=5.7, size=17)
+    text(s, 0.6, 5.2, 6.3, 1.2, "Released models reproduce their papers → my evaluation pipeline is correct", 17, BLUE, True)
+    bullets(s, [f"GSAD's test rescales outputs to the ground-truth brightness: +{float(RES[('GSAD (GT-mean, authors protocol)','LOLv1')]['psnr']) - float(RES[('GSAD','LOLv1')]['psnr']):.2f} dB (LOL-v1)",
+                "LOL-v2-real: 91 / 100 test images are LOL-v1 training images (example below)",
+                f"My re-training: {v('Retinexformer (my training)','LOLv1','psnr',2)} dB vs released {v('Retinexformer','LOLv1','psnr',2)} (GitHub #132: 23.45)"],
+            x=7.2, y=1.6, w=5.7, size=16, gap=6)
+    pic = picture(s, ASSETS / "overlap_pair.png", 7.2, 4.75, 5.7, 1.75, top_left=True)
+    caption(s, 7.2, 0, 5.7, "Left: LOL-v2-real TEST 00771  ·  Right: LOL-v1 TRAIN 771 - identical", 12, under=pic)
 
     # 13 --------------------------------------------------------------- qualitative
     s = slide("Qualitative results", """
@@ -533,7 +553,8 @@ colour shifts, and a domain gap from the normal-light images the detector learne
     table(s, rows, 0.6, 1.6, 6.4, [2.6, 1.4, 1.0, 1.4], size=14, row_h=0.48, bold_cells=best_cells(rows, [1, 2, 3], [True, True, True]))
     bullets(s, ["Raw images give the best mAP", "Enhancement lowers recall, not precision", "Better restoration hurts less, none helps"],
             x=0.6, y=4.75, w=6.4, size=16, gap=4)
-    picture(s, FIG / "detection_examples.png", 7.3, 1.35, 5.7, 5.6)
+    pic = picture(s, FIG / "detection_examples.png", 7.3, 1.6, 5.7, 4.75, top_left=True)
+    caption(s, 7.3, 0, 5.7, "Our YOLOv8m detections: bus missed in all versions; enhancement turns the white blanket yellow", 12, under=pic)
 
     # 15 --------------------------------------------------------------- ablation
     runs = [("FT-A control (L1)", "A: L1 (control)"), ("FT-B SNR-L1 (mine)", "B: SNR-L1 (mine)"), ("FT-C L1+FFT", "C: L1 + FFT"), ("FT-D SNR-L1+FFT", "D: SNR-L1 + FFT")]
@@ -580,20 +601,22 @@ Q: Why is GSAD slow? A: Diffusion runs the network once per sampling step (10-20
 one GPU? A: Speeds from different hardware are not comparable; my laptop's timings were unreliable.""", "Results")
     picture(s, FIG / "quality_vs_speed.png", 0.5, 1.35, 8.2, 5.5)
     bullets(s, [f"SCI: {float(SPEED[('SCI (medium)',)]['ms_per_image']):.1f} ms, low quality",
+                f"Zero-DCE: {float(SPEED[('Zero-DCE',)]['ms_per_image']):.0f} ms, low quality",
                 f"Retinexformer: {float(SPEED[('Retinexformer',)]['ms_per_image']):.0f} ms, best PSNR",
                 f"LLFormer: {float(SPEED[('LLFormer',)]['ms_per_image']):.0f} ms, {float(SPEED[('LLFormer',)]['params_M']):.1f} M params",
                 f"GSAD: {float(SPEED[('GSAD (LOLv2-real weights, 10 sampling steps)',)]['ms_per_image'])/1000:.1f}–{float(SPEED[('GSAD (LOLv1 weights, 20 sampling steps)',)]['ms_per_image'])/1000:.1f} s per image"],
             x=8.9, y=1.8, w=4.2, size=17)
+    text(s, 8.9, 4.6, 4.2, 1.6, "Retinexformer: best quality–speed trade-off. GSAD is 16–32× slower for lower PSNR.", 17, BLUE, True)
 
     # 17 --------------------------------------------------------------- limitations
     s = slide("Limitations and failure cases", """
-SAY: Every method, including mine, loses the fine green text on this bottle - the signal is simply not recoverable from the dark input.
+SAY: Every method, including mine, loses the fine green text on this tube and the wood grain of this cabinet - the signal is simply not recoverable from the dark input.
 Limitations of my work: LOL-v1 has only 15 test images, so small PSNR differences are not meaningful; I used one random seed per run;
 free GPU time limited training; the detector was not fine-tuned; and my SNR estimate cannot tell noise from edges, which is probably
 one reason the loss had little effect.
 
 Q: What would you do differently? A: Several seeds, larger test sets, and a noise estimate that ignores edges.""", "Discussion")
-    picture(s, FIG / "failures_lolv1.png", 0.4, 1.35, 7.4, 5.5)
+    picture(s, FIG / "failures_lolv1.png", 0.6, 1.6, 7.2, 5.2, top_left=True)
     bullets(s, ["Only 15 LOL-v1 test images", "One seed per run; limited free GPU time", "SNR estimate also marks edges as noise",
                 "Detector used as-is (not fine-tuned)", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
             x=8.1, y=1.7, w=5.0, size=16)
@@ -636,6 +659,7 @@ explained negative result that sets up the next step.""", "Conclusion")
          "Key references: Cai et al., Retinexformer, ICCV 2023 · Xu et al., SNR-Aware, CVPR 2022 · Hou et al., GSAD, NeurIPS 2023 · "
          "Wang et al., LLFormer, AAAI 2023 · Guo et al., Zero-DCE, CVPR 2020 · Ma et al., SCI, CVPR 2022 · "
          "Li et al., LLIE survey, TPAMI 2022 · Loh & Chan, ExDark, CVIU 2019  (full list in the report)", 12, INK2)
+    text(s, 0.6, 4.5, 12.2, 0.7, "Thank you — questions?", 28, BLUE, True)
 
     OUT.mkdir(parents=True, exist_ok=True)
     prs.save(OUT / "midsem.pptx")
