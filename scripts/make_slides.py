@@ -109,7 +109,16 @@ def make_assets():
     import subprocess, sys
     subprocess.run([sys.executable, str(ROOT / "scripts/make_grid.py"), "--dataset", "LOLv1", "--images", "79", "493",
                     "--methods", "Zero-DCE", "SCI", "Retinexformer", "GSAD", "FT SNR-L1 (B, mine)",
+                    "--rename", "FT SNR-L1 (B, mine)=FT SNR-L1 (B, proposed)",
                     "--out", str(ASSETS / "grid_slides.png")], check=True, capture_output=True)
+    # 5) failure cases for the slides (same images as the report figure, neutral column title)
+    subprocess.run([sys.executable, str(ROOT / "scripts/make_grid.py"), "--dataset", "LOLv1", "--images", "493", "1",
+                    "--methods", "Retinexformer", "GSAD", "FT control (A)", "FT SNR-L1 (B, mine)",
+                    "--rename", "FT SNR-L1 (B, mine)=FT SNR-L1 (B, proposed)",
+                    "--out", str(ASSETS / "failures_slides.png")], check=True, capture_output=True)
+    # 6) detection examples without the drawn column titles (the slide adds neutral titles as text)
+    det = Image.open(FIG / "detection_examples.png").convert("RGB")
+    det.crop((0, 75, det.width, det.height)).save(ASSETS / "detection_notitle.png")
 
 
 # ------------------------------------------------------------------ helpers
@@ -264,7 +273,7 @@ Q: Why detection? A: Real uses - surveillance, driving - care whether machines c
               "Pilot tested; next: noise awareness inside the network"),
              ("Downstream detection evaluation", "Does enhancement help a detector?",
               "YOLOv8m on ExDark (1,200 dark images, 12 classes): raw images vs every enhanced version",
-              f"Result: raw images best (mAP50 {float(DET[('raw',)]['mAP50']):.3f}); no enhancer helps")]
+              f"Finding: better-looking ≠ better detection (raw best, mAP50 {float(DET[('raw',)]['mAP50']):.3f})")]
     for i, (head, sub, body, status) in enumerate(cards):
         x = 0.6 + i * 4.1
         hd = s.shapes.add_shape(1, Inches(x), Inches(2.05), Inches(3.85), Inches(0.75))
@@ -387,7 +396,7 @@ reproduction of all methods with one script.
 Q: What is the difference between dark and noisy? A: A dark but smooth wall can be clean; a textured dark region can be very
 noisy. Illumination tells you brightness, SNR tells you how much of the signal is noise.""", "Motivation")
     rows = [["Gap in the literature", "What I did in the first half", "Shown in"],
-            ["Noise amplification in dark regions is unsolved", "SNR-weighted loss, tested against a control run", "My idea, Ablation"],
+            ["Noise amplification in dark regions is unsolved", "SNR-weighted loss, tested against a control run", "Proposed loss, Ablation"],
             ["Retinexformer: illumination-aware, not noise-aware", "Retinexformer as base; SNR map adds noise information", "Main model"],
             ["Methods judged by PSNR/SSIM, rarely by a machine task", "Detection study (YOLOv8) + dark-region PSNR", "Detection"],
             ["Diffusion: quality at a large speed cost", "Speed of every method on one GPU", "Efficiency"],
@@ -435,7 +444,7 @@ way.""", "Method")
                 f"{float(SPEED[('Retinexformer',)]['params_M']):.2f} M params, ℓ1 loss"], x=9.6, y=1.7, w=3.5, size=15, gap=6)
 
     # 9 ---------------------------------------------------------------- proposed loss
-    s = slide("My idea: noise-aware (SNR-weighted) loss", """
+    s = slide("Proposed: noise-aware (SNR-weighted) loss", """
 SAY: My idea is to tell the network, during training, which pixels are noisy. I compute an SNR map from the dark input: blur it,
 the difference between the image and its blur is the noise, and blur divided by noise is the SNR. Low-SNR pixels then get up to
 twice the weight of clean pixels in the L1 loss. Two design decisions: first, I use the rank of each pixel's SNR, because with
@@ -471,7 +480,7 @@ Q: Why does SSIM differ from PSNR? A: PSNR is pixel error; SSIM compares local s
 
     # 11 --------------------------------------------------------------- quantitative
     meth = [("Input", "Input"), ("Gamma", "Gamma"), ("Zero-DCE", "Zero-DCE"), ("SCI", "SCI"), ("SNR-Aware (released)", "SNR-Aware*"),
-            ("LLFormer", "LLFormer"), ("GSAD", "GSAD"), ("Retinexformer", "Retinexformer"), ("Retinexformer (my training)", "Retinexformer (mine)")]
+            ("LLFormer", "LLFormer"), ("GSAD", "GSAD"), ("Retinexformer", "Retinexformer"), ("Retinexformer (my training)", "Retinexformer (re-trained)")]
     excl = {("LLFormer", "LOLv2-real"), ("Retinexformer (my training)", "LOLv2-real")}
     rows = [["Method", "LOL-v1 PSNR↑", "SSIM↑", "LPIPS↓", "LOL-v2-real PSNR↑", "SSIM↑", "LPIPS↓"]]
     for m, lab in meth:
@@ -553,11 +562,14 @@ colour shifts, and a domain gap from the normal-light images the detector learne
     table(s, rows, 0.6, 1.6, 6.4, [2.6, 1.4, 1.0, 1.4], size=14, row_h=0.48, bold_cells=best_cells(rows, [1, 2, 3], [True, True, True]))
     bullets(s, ["Raw images give the best mAP", "Enhancement lowers recall, not precision", "Better restoration hurts less, none helps"],
             x=0.6, y=4.75, w=6.4, size=16, gap=4)
-    pic = picture(s, FIG / "detection_examples.png", 7.3, 1.6, 5.7, 4.75, top_left=True)
+    pic = picture(s, ASSETS / "detection_notitle.png", 7.3, 1.95, 5.7, 4.4, top_left=True)
+    pw = pic.width / 914400
+    for k, lab in enumerate(["Raw (dark)", "Retinexformer", "B (proposed)"]):
+        text(s, 7.3 + k * pw / 3, 1.55, pw / 3, 0.4, lab, 12, INK, True, PP_ALIGN.CENTER)
     caption(s, 7.3, 0, 5.7, "Our YOLOv8m detections: bus missed in all versions; enhancement turns the white blanket yellow", 12, under=pic)
 
     # 15 --------------------------------------------------------------- ablation
-    runs = [("FT-A control (L1)", "A: L1 (control)"), ("FT-B SNR-L1 (mine)", "B: SNR-L1 (mine)"), ("FT-C L1+FFT", "C: L1 + FFT"), ("FT-D SNR-L1+FFT", "D: SNR-L1 + FFT")]
+    runs = [("FT-A control (L1)", "A: L1 (control)"), ("FT-B SNR-L1 (mine)", "B: SNR-L1 (proposed)"), ("FT-C L1+FFT", "C: L1 + FFT"), ("FT-D SNR-L1+FFT", "D: SNR-L1 + FFT")]
     a_img, a_dark = per_image("per_image", "FT-A control (L1)", "psnr"), per_image("per_image_dark", "FT-A control (L1)", "dark_psnr")
     rows = [["Run", "LOL-v1 PSNR", "Dark-30% PSNR", "Dark wins vs A", "ExDark mAP50"],
             ["Released (start)", v("Retinexformer", "LOLv1", "psnr", 2), f"{float(DARK[('Retinexformer','LOLv1')]['dark_psnr']):.2f}", "–",
@@ -616,7 +628,7 @@ free GPU time limited training; the detector was not fine-tuned; and my SNR esti
 one reason the loss had little effect.
 
 Q: What would you do differently? A: Several seeds, larger test sets, and a noise estimate that ignores edges.""", "Discussion")
-    picture(s, FIG / "failures_lolv1.png", 0.6, 1.6, 7.2, 5.2, top_left=True)
+    picture(s, ASSETS / "failures_slides.png", 0.6, 1.6, 7.2, 5.2, top_left=True)
     bullets(s, ["Only 15 LOL-v1 test images", "One seed per run; limited free GPU time", "SNR estimate also marks edges as noise",
                 "Detector used as-is (not fine-tuned)", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
             x=8.1, y=1.7, w=5.0, size=16)

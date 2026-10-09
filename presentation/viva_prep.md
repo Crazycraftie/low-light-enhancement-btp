@@ -51,8 +51,8 @@ bottom: Dark photo → Enhancer → Image quality + Object detection.
   low-SNR (dark/noisy) pixels more weight during training. Tested against a control run (same everything except the loss).
   *Status: pilot tested; next step is noise awareness inside the network.*
 - **Card 3 – Downstream detection evaluation.** "Downstream" = a later task that uses the enhanced image. I run a ready-made
-  detector (YOLOv8m) on 1,200 dark ExDark images: once on the raw images, once on each enhanced version. *Result: raw images
-  give the best mAP50 (0.662)* (see D5).
+  detector (YOLOv8m) on 1,200 dark ExDark images: once on the raw images, once on each enhanced version. *Finding: better-looking ≠ better
+  detection (raw best, mAP50 0.662)* (see D5).
 - **Flow row** — the pipeline of the whole project: a dark photo goes into an enhancer; the output is judged in two ways:
   image quality (PSNR, SSIM, LPIPS, NIQE) and object detection (YOLOv8 mAP).
 
@@ -92,6 +92,8 @@ No, it is good. It is a reproduction check, not a competition: I ran the authors
 and got the paper's number (0.01 dB difference). That proves my data, PSNR code and inference are correct, so all my other
 numbers can be trusted. If I had got 23 or 27, my pipeline would be broken. The real gap is a different row: my own training
 from scratch = 23.10 dB (slide 13).
+
+**Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
 **D5. "Raw images best" for detection — is that the desired result?**
 Not what I hoped, but a correct and useful finding. Hypothesis: enhancement helps YOLOv8. Result: raw images mAP50 0.662, every
@@ -291,7 +293,7 @@ so differently lit regions are treated differently, and attention is across chan
 - *What is ℓ1 loss?* Average of |output − ground truth| over all pixels.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 10 — My idea: noise-aware (SNR-weighted) loss
+## Slide 10 — Proposed: noise-aware (SNR-weighted) loss
 
 **On the slide:** a 7-panel figure (a–g) made from image 79, and the formula steps.
 
@@ -360,7 +362,7 @@ summary line: "Retinexformer: best PSNR · GSAD: best LPIPS (most natural-lookin
 - *LLFormer* (23.65) — strong; dashes on LOL-v2-real because its weights were trained on LOL-v1 (overlap).
 - *GSAD* (22.73) — diffusion: lower PSNR but **best LPIPS** (0.103) and best LOL-v1 SSIM — looks most natural.
 - *Retinexformer* (25.15 / 22.79) — **best PSNR** on both sets.
-- *Retinexformer (mine)* (23.10) — my own training from scratch; gap explained on slide 13.
+- *Retinexformer (re-trained)* (23.10) — my own training from scratch; gap explained on slide 13.
 
 **Say it:** "All rows are scored by the same script. Retinexformer has the best PSNR on both sets. GSAD looks the most natural
 (best LPIPS) but has lower PSNR. Classical and zero-shot methods stay around 15 dB."
@@ -405,7 +407,7 @@ in both datasets. This is the proof of finding 2, from our own data.
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 14 — Qualitative results
 
-**On the slide:** a grid. Columns: Input | Zero-DCE | SCI | Retinexformer | GSAD | FT SNR-L1 (B, mine) | Ground truth.
+**On the slide:** a grid. Columns: Input | Zero-DCE | SCI | Retinexformer | GSAD | FT SNR-L1 (B, proposed) | Ground truth.
 Rows: image 79 (cupboard), its zoomed crop, image 493 (toys and a colour chart), its zoomed crop. Red boxes = zoomed region.
 
 **Explain what to look at:**
@@ -413,7 +415,7 @@ Rows: image 79 (cupboard), its zoomed crop, image 493 (toys and a colour chart),
 - **Crop of 493 (white tube):** Zero-DCE / SCI noisy and bluish; Retinexformer and B clean but smooth — the small **green text**
   on the tube (visible in the ground truth) is lost; GSAD is brightest with the most texture but the background turns
   **greenish** (colour drift).
-- **B (mine) vs Retinexformer:** almost identical — matches the tiny numbers on slide 16.
+- **B (proposed) vs Retinexformer:** almost identical — matches the tiny numbers on slide 16.
 - Zoom boxes were chosen automatically: dark in the input but with detail in the ground truth.
 
 **Say it:** "Zero-DCE and SCI make the image bright but full of colour noise. The transformers remove the noise but smooth fine
@@ -422,7 +424,7 @@ detail. GSAD keeps texture but drifts in colour. My run B looks like Retinexform
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 15 — Does enhancement help a detector? (ExDark, YOLOv8m)
 
-**On the slide:** a table, three bullets, and a picture (3 ExDark images × Raw | Retinexformer | FT SNR-L1 (B)) with the
+**On the slide:** a table, three bullets, and a picture (3 ExDark images × Raw (dark) | Retinexformer | B (proposed)) with the
 caption "Our YOLOv8m detections: bus missed in all versions; enhancement turns the white blanket yellow".
 
 **Explain the table:**
@@ -455,7 +457,7 @@ lowering recall. The images look better to us but are less familiar to the detec
 
 **Explain the table:**
 - *Released (start)* — the released Retinexformer weights all runs start from (25.15 dB).
-- *A: L1 (control)*, *B: SNR-L1 (mine)*, *C: L1 + FFT*, *D: SNR-L1 + FFT* — fine-tuned for the SAME iterations, same batches,
+- *A: L1 (control)*, *B: SNR-L1 (proposed)*, *C: L1 + FFT*, *D: SNR-L1 + FFT* — fine-tuned for the SAME iterations, same batches,
   same learning rate; only the loss differs.
 - *Dark-30% PSNR* — PSNR on the darkest 30% of pixels. A 24.89 vs B 24.91.
 - *Dark wins vs A* — on how many of the 15 images the run beats A in dark regions: B 13/15, C 3/15, D 12/15.

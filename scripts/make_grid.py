@@ -78,7 +78,9 @@ def main():
     ap.add_argument("--no-zoom", action="store_true")
     ap.add_argument("--box", nargs=4, type=float, default=None, help="manual zoom box x y w h as fractions")
     ap.add_argument("--methods", nargs="*", default=None, help="subset of column titles to show")
+    ap.add_argument("--rename", nargs="*", default=[], help='change a column title, e.g. "FT SNR-L1 (B, mine)=FT SNR-L1 (B)"')
     args = ap.parse_args()
+    rename = dict(r.split("=", 1) for r in args.rename)
 
     cols = [("Input", INPUT[args.dataset])]
     cols += [(t, p.format(d=args.dataset)) for t, p in METHODS
@@ -126,7 +128,7 @@ def main():
                 for s in z.spines.values():
                     s.set_edgecolor("#e34948"); s.set_linewidth(1.2)
             if i == 0:
-                ax.set_title(title, fontsize=7, color=INK, pad=3)
+                ax.set_title(rename.get(title, title), fontsize=7, color=INK, pad=3)
         axes[i * rows_per_img, 0].set_ylabel(f"{args.dataset} {stem}", fontsize=7, color=INK2)
 
     out = Path(args.out)
