@@ -32,7 +32,7 @@ FONT = "Arial"
 TITLE = "Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation"
 FOOT = "Midsem BTP  ·  Low-light image enhancement  ·  IIT Patna"
 # Fill these in (title slide); they also appear in the report title block.
-STUDENT, ROLL, SUPERVISOR, DATE = "[MISSING: Student name]", "[MISSING: Roll number]", "[MISSING: Supervisor]", "[MISSING: Date]"
+STUDENT, ROLL, SUPERVISOR, DATE = "Dhirendra Pratap Singh", "2301EE49", "Dr. Rajib Kumar Jha", "[MISSING: Date]"
 
 
 # ------------------------------------------------------------------ data (all numbers come from here)
