@@ -117,8 +117,7 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   (numbers read from CSVs). Render check: LibreOffice (`/Applications/LibreOffice.app`).
 - Viva: `presentation/viva_prep.md` (20 Q&A), `report/section_summaries.md`.
 - `scripts/check_numbers.py`: 503 decimal numbers in report/slides/README all traceable to `results/*.csv`.
-- Filled: Dhirendra Pratap Singh (2301EE49), supervisor Dr. Rajib Kumar Jha. OPEN: presentation date is a
-  `[MISSING: Date]` placeholder (`report/main.tex` \author, `DATE` in `scripts/make_slides.py`; then rebuild).
+- Title details filled: Dhirendra Pratap Singh (2301EE49), supervisor Dr. Rajib Kumar Jha (no date, by choice).
 - Key results: Retinexformer released 25.15 dB LOL-v1 (paper 25.16); re-trained 23.10 (GitHub #132: 23.45);
   GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
   every enhancer; SNR loss B vs A: +0.01 dB overall, dark regions 13/15 wins (p=0.004) but +0.01–0.05 dB → negligible.

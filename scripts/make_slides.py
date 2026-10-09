@@ -32,7 +32,7 @@ FONT = "Arial"
 TITLE = "Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation"
 FOOT = "Midsem BTP  ·  Low-light image enhancement  ·  IIT Patna"
 # Fill these in (title slide); they also appear in the report title block.
-STUDENT, ROLL, SUPERVISOR, DATE = "Dhirendra Pratap Singh", "2301EE49", "Dr. Rajib Kumar Jha", "[MISSING: Date]"
+STUDENT, ROLL, SUPERVISOR = "Dhirendra Pratap Singh", "2301EE49", "Dr. Rajib Kumar Jha"
 
 
 # ------------------------------------------------------------------ data (all numbers come from here)
@@ -218,7 +218,7 @@ def build():
     bg = s.shapes.add_shape(1, 0, 0, prs.slide_width, Inches(3.9)); bg.fill.solid(); bg.fill.fore_color.rgb = BLUE; bg.line.fill.background()
     text(s, 0.8, 0.9, 11.7, 2.2, TITLE, 34, RGBColor(0xFF, 0xFF, 0xFF), bold=True)
     text(s, 0.8, 3.0, 11, 0.5, "Mid-semester B.Tech Project evaluation", 18, RGBColor(0xDB, 0xE8, 0xF8))
-    text(s, 0.8, 4.4, 11.5, 2.0, f"{STUDENT}   ({ROLL})\nSupervisor: {SUPERVISOR}\nDepartment of Electrical Engineering, IIT Patna\n{DATE}", 18, INK)
+    text(s, 0.8, 4.4, 11.5, 2.0, f"{STUDENT}   ({ROLL})\nSupervisor: {SUPERVISOR}\nDepartment of Electrical Engineering, IIT Patna", 18, INK)
     s.notes_slide.notes_text_frame.text = (
         "SAY: Good morning. My project is about making very dark photos look as if they were taken in good light, "
         "and checking whether that actually helps a computer find objects in the dark. In this midsem I will show what "
