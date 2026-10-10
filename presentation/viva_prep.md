@@ -111,6 +111,20 @@ It signifies two things: (1) Retinexformer's outputs are the closest to the corr
 If asked "is PSNR enough?": no — it only counts pixel differences; a slight brightness offset costs many dB even if the photo looks
 fine. That is why I also use SSIM, LPIPS, NIQE and detection accuracy.
 
+**D9. "Pilot tested; next: noise awareness inside the network" — what does it mean, and why not do it now?** (slide 2)
+Two places a model can know about noise: (1) in the LOSS (what I did): mistakes on dark/grainy pixels count more (up to 2×);
+the model itself is unchanged — like a teacher giving double marks for hard questions. (2) INSIDE THE NETWORK (next): the SNR
+map is an input the model uses while processing every image, e.g. inside Retinexformer's attention, noisy regions borrow from
+clean regions (as SNR-Aware does) — like giving the student a tool during the exam.
+"Pilot tested" = tried the simple version, measured it fairly against a control: consistent but very small gain in dark regions.
+Why not now: (a) cheapest test first — the loss change needs no model change, so I could fine-tune from released weights in
+hours; changing the model means training from scratch (150k iterations, many 12-hour Kaggle sessions, ~30 GPU h/week) — not
+possible in 3 coding days; (b) evidence first — now I know the map points to the right places (13/15 dark-region wins) but the
+loss alone is too weak, and the map also marks edges as noise, so that must be fixed too; (c) midsem = groundwork.
+Say: "I started with the cheapest test, a loss change that needs no model change. It showed the noise map points to the right
+regions but the effect is too small, so the next step is using the SNR map inside attention, which needs training from scratch —
+planned for the second half."
+
 **Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
 **D5. "Raw images best" for detection — is that the desired result?**
