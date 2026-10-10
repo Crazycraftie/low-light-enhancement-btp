@@ -93,6 +93,24 @@ and got the paper's number (0.01 dB difference). That proves my data, PSNR code 
 numbers can be trusted. If I had got 23 or 27, my pipeline would be broken. The real gap is a different row: my own training
 from scratch = 23.10 dB (slide 13).
 
+**D7. What are the "8 other methods"?** (slide 2)
+1 HE (histogram equalization), 2 CLAHE, 3 Gamma correction — classical, no AI;
+4 Zero-DCE (2020) — small AI that learns brightness curves without paired photos; 5 SCI (2022) — tiny, very fast AI;
+6 SNR-Aware (2022) — transformer that also uses a noise map (gave me the SNR idea); 7 LLFormer (2023) — transformer for 4K/8K;
+8 GSAD (2023) — diffusion model, realistic but very slow. My own re-training of Retinexformer is an extra row.
+Say: "Eight methods covering every generation: three classical, two small fast AI models, two transformers, one diffusion model."
+
+**D8. What is 25.15 dB and what does it signify?** (slide 2)
+dB is the unit of PSNR (peak signal-to-noise ratio). LOL-v1 gives pairs: a dark photo and the correct bright photo of the same
+scene (ground truth). Compare the model's output with the ground truth pixel by pixel: small difference → high PSNR.
+Formula: PSNR = 10·log10(255² / MSE), MSE = average squared pixel error. Rough guide on LOL-v1: dark input 7.77 dB, simple
+methods ≈ 15 dB, strong AI ≈ 24 dB, Retinexformer 25.15 dB (best). Every +3 dB ≈ halves the error. 25.15 = average over the
+15 LOL-v1 test photos.
+It signifies two things: (1) Retinexformer's outputs are the closest to the correct photos among all methods tested;
+(2) the paper reports 25.16 and I got 25.15 with my own code → my evaluation setup is correct, so my other numbers can be trusted.
+If asked "is PSNR enough?": no — it only counts pixel differences; a slight brightness offset costs many dB even if the photo looks
+fine. That is why I also use SSIM, LPIPS, NIQE and detection accuracy.
+
 **Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
 **D5. "Raw images best" for detection — is that the desired result?**
