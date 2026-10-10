@@ -125,6 +125,16 @@ Say: "I started with the cheapest test, a loss change that needs no model change
 regions but the effect is too small, so the next step is using the SNR map inside attention, which needs training from scratch —
 planned for the second half."
 
+**D10. mAP50 0.662 is on the dark images — what are the scores on enhanced images?** (slide 2, detection slide)
+1,200 ExDark images (YOLOv8m, mAP50): raw 0.662 · Retinexformer 0.603 · SCI 0.595 · Zero-DCE 0.572.
+200-image subset (GSAD too slow for all): raw 0.707 · GSAD 0.633 · Retinexformer 0.628 · SCI 0.625 · Zero-DCE 0.603.
+Every enhancer is below raw; better restoration drops less. mAP50 = a box is correct if it overlaps the true box by ≥ 50% with the
+right label; mAP combines "how many boxes are correct" and "how many objects were found", averaged over 12 classes (0–1).
+Why it drops: recall falls from 0.611 to 0.502–0.540 (more objects missed), precision about the same. YOLOv8 (COCO-trained) already
+copes with darkness; enhancement brightens noise and shifts colours (blanket turns yellow), so images look less familiar to it.
+If asked "is enhancement useless for detection?": "Not necessarily — I used the detector as is; in the second half I'll fine-tune
+YOLOv8 on enhanced images to see if enhancement helps once the detector adapts."
+
 **Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
 **D5. "Raw images best" for detection — is that the desired result?**
