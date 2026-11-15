@@ -73,6 +73,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sets", nargs="*", default=None, help="names of data/exdark_yolo/<name>.yaml (default all)")
     ap.add_argument("--model", default="yolov8m.pt")
+    ap.add_argument("--result-prefix", default="", help="prefix for detection.csv rows when evaluating trained detectors")
     ap.add_argument("--imgsz", type=int, default=1024)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--device", default=None, help="cpu / 0 (cuda). Default: cuda if available, else cpu (NOT mps)")
@@ -102,7 +103,8 @@ def main():
                       classes=CLASSES, device=args.device, plots=False, verbose=False,
                       project=tmp, name=s)
         b = m.box
-        row = {"method": s, "mAP50": round(float(b.map50), 4), "mAP50-95": round(float(b.map), 4),
+        method = f"{args.result_prefix}{s}"
+        row = {"method": method, "mAP50": round(float(b.map50), 4), "mAP50-95": round(float(b.map), 4),
                "precision": round(float(b.mp), 4), "recall": round(float(b.mr), 4),
                "num_images": n_imgs, "device": str(m.args.device if hasattr(m, "args") else args.device)}
         print("  ", row)
@@ -110,14 +112,14 @@ def main():
             continue                              # quick check: do not write results
 
         upsert(ROOT / "results" / "detection.csv", row, ["method"])
-        per = {"method": s}
+        per = {"method": method}
         ap50 = dict(zip([int(c) for c in b.ap_class_index], b.ap50))
         for c in CLASSES:
             per[names[c]] = round(float(ap50.get(c, float("nan"))), 4)
         upsert(ROOT / "results" / "detection_per_class.csv", per, ["method"])
 
         # Example predictions for slides (conf 0.25 = typical "display" threshold)
-        fig_dir = ROOT / "results" / "figures" / "detection" / s
+        fig_dir = ROOT / "results" / "figures" / "detection" / method
         fig_dir.mkdir(parents=True, exist_ok=True)
         img_dir = Path(yaml.safe_load(open(yml))["path"]) / "images"
         # Example images: drawn from this set's own (sorted) image list with a fixed seed, so every

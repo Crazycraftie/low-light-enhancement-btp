@@ -90,3 +90,28 @@ LOL-v1 PSNR A 24.31 / B 24.32 / C 24.31 / D 24.32 (start 25.15); dark-30% PSNR A
 images, sign test p = 0.007, +0.01–0.05 dB); LOL-v2-syn 16.61–16.62 (start 16.19); ExDark-200 mAP50 0.626–0.627.
 Kaggle T4: 0.31 s/iter (B, D) vs 0.29 s/iter (A, C) — the SNR map costs ~6%.
 Interpretation: `notes/contribution_findings.md`. Tables: `results/tables.md`.
+
+## 5. Post-midsem follow-up — run package prepared, GPU results pending
+
+The approved next experiment moves SNR guidance into IG-MSA. `scripts/snr_guidance.py` derives the same
+rank-normalized, mean-one map from the low-light input, resizes it for each attention block, and scales the value
+features. It introduces no trainable parameters or checkpoint-key changes. With α=0, the modified attention is
+numerically identical to the official block (verified on a CPU smoke test). This first variant does not add a
+separate flat-region noise estimator; the existing residual-based SNR map can still respond to real edges.
+
+`scripts/finetune.py` now supports scratch initialization, both LOL paired-folder layouts, a deterministic validation
+split, periodic PSNR, and atomic/resumable model+optimizer checkpoints. The Kaggle run plan is:
+
+- Data: LOL-v2-syn, 900 training pairs / 100 held-out test pairs; reserve 10% of train as validation.
+- Screening: α ∈ {2, 4, 8} plus the original no-gate control, three seeds (42, 43, 44), L1 loss only, 10k iterations,
+  batch 8, 128-pixel crops, 2e-4 learning rate. Same seed gives matched initialization and crop schedule across α.
+- Final: choose α by mean validation PSNR, then train that variant and a no-gate control from scratch for 150k
+  iterations with seed 42. The held-out test set is evaluated only after selection.
+- Detection: use official ExDark split 1 for training and split 2 for validation. Fine-tune matched YOLOv8m detectors
+  from the same COCO checkpoint on raw and SNR-enhanced images, then evaluate on the existing fixed 1,200-image
+  split-3 test subset in both raw and enhanced pixel domains.
+
+Kaggle workflows: `notebooks/post_midsem_experiments.ipynb` and `notebooks/post_midsem_detection.ipynb`.
+Smoke checks for model parity, scratch/pretrained training, resume, inference, and ExDark label conversion passed
+locally on 2026-11-15. Full GPU runs, final metric imports, and report/slide updates remain pending; do not treat the
+planned settings as results.

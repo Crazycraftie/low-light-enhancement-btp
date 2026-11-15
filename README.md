@@ -72,11 +72,29 @@ force CPU there. NIQE needs float64 → CPU. Speeds were measured only on a Kagg
 | ExDark → YOLO | `scripts/exdark_to_yolo.py` → `scripts/check_labels.py` → `scripts/build_yolo_sets.py` → `scripts/yolo_eval.py` |
 | Speed on one GPU + GSAD on ExDark-200 | `notebooks/day2_speed_gsad_exdark.ipynb` |
 | SNR-loss experiment (runs A–D) | `scripts/losses.py`, `scripts/finetune.py`, `notebooks/day3_finetune.ipynb` |
+| Post-midsem SNR-attention and detector experiments | `notebooks/post_midsem_experiments.ipynb`, `notebooks/post_midsem_detection.ipynb` |
 | Dark-region metric | `python scripts/eval_dark_regions.py --pred <dir> --gt <dir> --low <dir> --method <name> --dataset LOLv1` |
 | Tables / plots / grids | `scripts/make_tables.py`, `scripts/plot_results.py`, `scripts/make_grid.py`, `scripts/find_failures.py` |
 
 Every script has a docstring with a usage example. All settings, problems and fixes are logged in
 [`notes/experiment_log.md`](notes/experiment_log.md); detection analysis in [`notes/detection_findings.md`](notes/detection_findings.md).
+
+## Post-midsem experiments
+
+The remaining-semester plan moves noise guidance from the loss into Retinexformer's IG-MSA attention and tests
+whether detector fine-tuning on enhanced images helps. `scripts/snr_guidance.py` scales attention value features
+with a rank-normalized, mean-one SNR gate; the gate adds no parameters and alpha 0 matches the unmodified model.
+
+- [`notebooks/post_midsem_experiments.ipynb`](notebooks/post_midsem_experiments.ipynb): LOL-v2-syn alpha sweep
+  (2/4/8, three seeds, matched no-gate control), then matched from-scratch training and held-out test evaluation.
+  Selection uses a validation split from the training set; do not choose alpha using the test results.
+- [`notebooks/post_midsem_detection.ipynb`](notebooks/post_midsem_detection.ipynb): fine-tune YOLOv8m on raw
+  versus SNR-enhanced ExDark training images, then evaluate both detectors on the same held-out test images.
+- `scripts/finetune.py` supports scratch training, validation, and resumable checkpoints;
+  `scripts/retinexformer_infer.py --snr-attention --alpha <value>` runs the guided architecture.
+
+These are GPU experiments for Kaggle, not completed result claims. Record the produced checkpoints and CSVs before
+updating the report or slides.
 
 ## Repo layout
 ```

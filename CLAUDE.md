@@ -11,7 +11,7 @@
 
 **Idea:** Reproduce Retinexformer (ICCV 2023) and strong baselines, evaluate on image quality AND on
 whether enhancement helps object detection in the dark, then pilot a noise-aware improvement
-(SNR-weighted loss) motivated by noise amplification in dark regions.
+(SNR-weighted loss followed by an SNR-guided attention variant) motivated by noise amplification in dark regions.
 
 **Main paper:** Retinexformer — https://github.com/caiyuanhao1998/Retinexformer
 **Related:** SNR-Aware (CVPR 2022), SCI (CVPR 2022), Zero-DCE (CVPR 2020), LLFormer (AAAI 2023),
@@ -79,7 +79,8 @@ notes/       # paper notes, literature review, day plans
 
 ## Methods to compare
 Input (reference), HE, CLAHE, Gamma, Zero-DCE, SCI, SNR-Aware, LLFormer, Retinexformer (pretrained),
-Retinexformer (my training), one diffusion model (GSAD or Diff-Retinex), my SNR-weighted variant + control.
+Retinexformer (my training), one diffusion model (GSAD or Diff-Retinex), SNR-weighted loss + control,
+and SNR-guided attention + matched control.
 Metrics: PSNR, SSIM, LPIPS, NIQE, inference time, params/FLOPs, detection mAP@0.5 and mAP@0.5:0.95.
 
 ## Retinexformer notes (Kaggle)
@@ -109,7 +110,7 @@ quality-vs-speed plot, detection examples. Clean README.
 
 Fallback order if behind: drop diffusion → second loss variant → full-size ExDark. Everything else is core.
 
-## Current status (2026-10-08) — coding DONE; report + slides DONE (drafts to review)
+## Current status (2026-11-15) — midsem deliverables complete; post-midsem GPU runs pending
 - Report: `report/report.pdf` (IEEE two-column, 9 pp; source `report/main.tex`, `refs.bib` = 28 refs verified via
   Crossref/arXiv/official pages; tables from `scripts/make_latex_tables.py`; Overleaf zip `report/overleaf_report.zip`).
   Build locally: `~/Library/TinyTeX/bin/universal-darwin/pdflatex` (+ bibtex) in `report/`.
@@ -122,3 +123,10 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
   every enhancer; SNR loss B vs A: +0.01 dB overall, dark regions 13/15 wins (p=0.004) but +0.01–0.05 dB → negligible.
 - Verified paper-reported numbers: `results/reported_in_papers.csv` (Retinexformer, SNR-Aware, LLFormer exact; GSAD w/ GT trick).
+- Remaining-semester decisions are recorded in `report/main.tex` and `notes/contribution_findings.md`: move SNR guidance into
+  IG-MSA, sweep alpha 2/4/8 with three seeds, train the selected variant and control from scratch on LOL-v2-syn, then
+  fine-tune YOLOv8 on raw versus enhanced ExDark training data.
+- Implemented the parameter-free value-scaling gate in `scripts/snr_guidance.py`, added scratch/validation/resume support
+  to `scripts/finetune.py`, and prepared Kaggle workflows in `notebooks/post_midsem_experiments.ipynb` and
+  `notebooks/post_midsem_detection.ipynb`. Smoke tests pass locally; full GPU experiments have not run yet.
+- Do not update final report/slides with new claims until the Kaggle runs finish and their outputs are imported and checked.
