@@ -270,6 +270,7 @@ def main():
         fixed_keys = (
             "loss", "alpha", "fft_weight", "iters", "lr", "batch", "crop", "seed",
             "pretrained", "snr_attention", "val_fraction", "val_seed",
+            "val_every", "val_limit", "checkpoint_every", "log_every", "repo",
         )
         changed = [key for key in fixed_keys if old_cfg.get(key) != cfg.get(key)]
         if changed:
@@ -286,7 +287,8 @@ def main():
         start_iter, best_val_psnr = 0, float("-inf")
 
     log_path = out / "log.csv"
-    if args.resume and log_path.exists():
+    needs_header = not args.resume or not log_path.exists() or log_path.stat().st_size == 0
+    if args.resume and log_path.exists() and log_path.stat().st_size:
         with log_path.open(newline="") as previous:
             rows = list(csv.DictReader(previous))
         with log_path.open("w", newline="") as previous:
@@ -295,7 +297,7 @@ def main():
             writer.writerows(row for row in rows if int(row["iter"]) <= start_iter)
     log = open(log_path, "a" if args.resume else "w", newline="")
     w = csv.writer(log)
-    if not args.resume:
+    if needs_header:
         w.writerow(["iter", "loss", "l1", "lr", "sec_per_iter", "val_psnr"])
     t_last, run_loss, run_l1, n = time.perf_counter(), 0.0, 0.0, 0
     factor = int(yaml.safe_load(open(args.opt)).get("val", {}).get("window_size", 4))

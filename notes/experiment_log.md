@@ -115,3 +115,18 @@ Kaggle workflows: `notebooks/post_midsem_experiments.ipynb` and `notebooks/post_
 Smoke checks for model parity, scratch/pretrained training, resume, inference, and ExDark label conversion passed
 locally on 2026-11-15. Full GPU runs, final metric imports, and report/slide updates remain pending; do not treat the
 planned settings as results.
+
+### 2026-11-18 — GPU progress actually completed (read from the downloaded state zips)
+
+- Sweep (12 runs, 10k iters, from scratch, L1, three seeds) finished. Mean best validation PSNR:
+  **control 23.7666**, alpha 2 23.5707, alpha 4 23.7365, alpha 8 23.6062. The **control is best**;
+  alpha 4 is the best guided setting and was the one selected for the final run. The SNR gate did not
+  help on validation at 10k iterations.
+- Final 150k runs (from scratch, seed 42) were interrupted by the Kaggle session limit:
+  control stopped at **116,500** iterations (last logged speed 0.305 s/iter), guided alpha 4 at
+  **123,500** (0.288 s/iter). Both have `latest_state.pth` (model + optimizer + scheduler), so they are
+  resumable. Best validation PSNR so far: control 24.8936 at 75k, guided 24.7072 at 105k.
+- No test evaluation has been run: `results/results.csv` has no `PostMidsem` rows and no test-results zip
+  was downloaded. Do not quote any post-midsem test numbers yet.
+- Compressed continuation: `notebooks/final_6h.ipynb` resumes both runs on one T4 (~5 h), then evaluates
+  the 100-image LOL-v2-syn test set once with `best.pth`. ExDark detector fine-tuning is dropped for quota.
