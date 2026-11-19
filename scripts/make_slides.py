@@ -1,5 +1,5 @@
 """
-Build the midsem presentation (presentation/midsem.pptx) with python-pptx.
+Build the final presentation (presentation/final.pptx) with python-pptx.
 
 * Clean academic template made here (no professor PPT was available): 16:9, white background, one accent blue
   (#2a78d6, the same as the report figures), Arial, footer + slide numbers.
@@ -7,9 +7,9 @@ Build the midsem presentation (presentation/midsem.pptx) with python-pptx.
 * Every slide has speaker notes: what to say (simple spoken English, ~1 min) + likely panel questions with answers.
 
 Usage:
-    python scripts/make_slides.py            # -> presentation/midsem.pptx (+ presentation/assets/*.png)
+    python scripts/make_slides.py            # -> presentation/final.pptx (+ presentation/assets/*.png)
 Render check (needs LibreOffice):
-    soffice --headless --convert-to pdf presentation/midsem.pptx --outdir presentation/
+    soffice --headless --convert-to pdf presentation/final.pptx --outdir presentation/
 """
 
 import csv
@@ -31,7 +31,7 @@ BLUE, INK, INK2, LIGHT, ORANGE = RGBColor(0x2A, 0x78, 0xD6), RGBColor(0x0B, 0x0B
     RGBColor(0xEE, 0xF4, 0xFC), RGBColor(0xEB, 0x68, 0x34)
 FONT = "Arial"
 TITLE = "Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation"
-FOOT = "Midsem BTP  ·  Low-light image enhancement  ·  IIT Patna"
+FOOT = "BTP  ·  Low-light image enhancement  ·  IIT Patna"
 # Fill these in (title slide); they also appear in the report title block.
 STUDENT, ROLL, SUPERVISOR = "Dhirendra Pratap Singh", "2301EE49", "Dr. Rajib Kumar Jha"
 
@@ -56,7 +56,7 @@ def per_image(folder, method, col, dataset="LOLv1"):
     return {r["image"]: float(r[col]) for r in csv.DictReader(open(R / folder / f"{method}_{dataset}.csv"))}
 
 
-# Post-midsem SNR-guided-attention runs: sweep / final validation PSNRs (all traceable to this CSV).
+# SNR-attention runs: sweep / final validation PSNRs (all traceable to this CSV).
 ATTN = list(csv.DictReader(open(R / "snr_attention.csv")))
 
 
@@ -255,12 +255,12 @@ def build():
     s = prs.slides.add_slide(BLANK); N[0] += 1
     bg = s.shapes.add_shape(1, 0, 0, prs.slide_width, Inches(3.9)); bg.fill.solid(); bg.fill.fore_color.rgb = BLUE; bg.line.fill.background()
     text(s, 0.8, 0.9, 11.7, 2.2, TITLE, 34, RGBColor(0xFF, 0xFF, 0xFF), bold=True)
-    text(s, 0.8, 3.0, 11, 0.5, "Mid-semester B.Tech Project evaluation", 18, RGBColor(0xDB, 0xE8, 0xF8))
+    text(s, 0.8, 3.0, 11, 0.5, "B.Tech Project evaluation — Final presentation", 18, RGBColor(0xDB, 0xE8, 0xF8))
     text(s, 0.8, 4.4, 11.5, 2.0, f"{STUDENT}   ({ROLL})\nSupervisor: {SUPERVISOR}\nDepartment of Electrical Engineering, IIT Patna", 18, INK)
     s.notes_slide.notes_text_frame.text = (
         "SAY: Good morning. My project is about making very dark photos look as if they were taken in good light, "
-        "and checking whether that actually helps a computer find objects in the dark. In this midsem I will show what "
-        "I have reproduced, what I measured, one idea of my own that I tested, and my plan for the second half.\n\n"
+        "and checking whether that actually helps a computer find objects in the dark. In this talk I show what "
+        "I reproduced, what I measured, the ideas I tested, and the SNR-guided attention experiment I ran.\n\n"
         "Q: Why this topic? A: Night photos, surveillance and driving all produce dark images, and detectors fail on them; "
         "it is an active research area with open problems such as noise.")
 
@@ -271,7 +271,7 @@ SAY: Let me explain the title in three parts. Low-light image enhancement means 
 First, TRANSFORMER-BASED: my main model is Retinexformer, a transformer built on Retinex theory. I reproduced it and compared it
 with eight other methods under one common protocol. Second, NOISE-AWARE: when you brighten a dark image, the noise in the darkest
 parts is amplified the most. My idea is a loss that finds noisy regions with a signal-to-noise map and gives them more weight during
-training. At midsem this is a pilot. Third, DOWNSTREAM DETECTION: instead of only measuring image quality, I ask whether enhancement
+training. This is a pilot study. Third, DOWNSTREAM DETECTION: instead of only measuring image quality, I ask whether enhancement
 actually helps a computer find objects in the dark, using YOLOv8 on the ExDark dataset. The rest of the talk follows these three parts.
 
 Q: What do you mean by noise-aware? A: The method uses an estimate of where the noise is (the SNR map) and treats those regions
@@ -287,7 +287,7 @@ Q: Why detection? A: Real uses - surveillance, driving - care whether machines c
               f"Reproduced: {v('Retinexformer', 'LOLv1', 'psnr', 2)} dB vs paper {float(rp0[('Retinexformer', 'LOLv1')]['psnr']):.2f} → pipeline verified"),
              ("Noise-aware", "SNR-weighted training loss",
               "SNR map finds dark, noisy regions; the training loss gives them more weight; compared with a control run",
-              "Pilot tested; next: noise awareness inside the network"),
+              "Pilot tested; noise awareness also tested inside the network"),
              ("Downstream detection evaluation", "Does enhancement help a detector?",
               "YOLOv8m on ExDark (1,200 dark images, 12 classes): raw images vs every enhanced version",
               f"Finding: better-looking ≠ better detection (raw best, mAP50 {float(DET[('raw',)]['mAP50']):.3f})")]
@@ -317,7 +317,7 @@ Q: Why detection? A: Real uses - surveillance, driving - care whether machines c
 SAY: On the left is a real photo from the LOL test set taken in very low light; on the right is the same photo after I ran
 Retinexformer on it. Dark images like this appear in phone night photography, surveillance cameras, night driving and robots.
 They are hard for people to see, and object detectors also work much worse in the dark. And simply brightening is not enough,
-because the noise is brightened too - that is the next slide.
+because the noise is brightened too - that is the subject of the following slide.
 
 Q: Can't we just increase the exposure? A: Longer exposure causes motion blur, and higher ISO adds noise; enhancement
 after capture avoids both but must deal with the noise that is already there.
@@ -373,7 +373,7 @@ see a local neighbourhood.""", "Literature")
         text(s, x, 2.6, 2.2, 0.9, b, 14, INK2, align=PP_ALIGN.CENTER)
         if i < 4:
             text(s, x + 2.18, 1.75, 0.35, 0.6, "→", 24, BLUE, True, PP_ALIGN.CENTER)
-    # what each stage left open = why the next stage came
+    # what each stage left open = why the following stage came
     text(s, 0.6, 3.55, 12.2, 0.4, "What each stage left open", 15, BLUE, True)
     for i, t in enumerate(["No learning,\nno noise model", "Needs paired\ndark/bright data", "Brightens the\nnoise too",
                            "Not noise-aware;\nattention is costly", "Very slow\n(many passes)"]):
@@ -403,23 +403,23 @@ and weights, and it is built on Retinex theory, which makes it explainable.""", 
     table(s, rows, 0.6, 1.6, 12.1, [2.4, 1.8, 4.3, 3.6], size=14, row_h=0.52)
 
     # 6 ---------------------------------------------------------------- gap + objectives
-    s = slide("Research gap and objectives of this midsem", """
+    s = slide("Research gap and objectives", """
 SAY: Four gaps motivate the project. First, noise in dark regions is still an open problem. Second, Retinexformer knows where the
 image is dark but not where it is noisy. Third, papers mostly report PSNR and SSIM; few check whether enhancement helps a machine.
-Fourth, diffusion models trade a lot of speed for quality. Each row of the table pairs a gap with what I did about it in the first half
-and the slide where I show it: a noise-aware loss with a control run, detection and dark-region metrics, speed on one GPU, and a fair
-reproduction of all methods with one script.
+Fourth, diffusion models trade a lot of speed for quality. Each row of the table pairs a gap with what I did about it and the slide
+where I show it: a noise-aware loss with a control run, detection and dark-region metrics, speed on one GPU, and a fair reproduction
+of all methods with one script.
 
 Q: What is the difference between dark and noisy? A: A dark but smooth wall can be clean; a textured dark region can be very
 noisy. Illumination tells you brightness, SNR tells you how much of the signal is noise.""", "Motivation")
-    rows = [["Gap in the literature", "What I did in the first half", "Shown in"],
+    rows = [["Gap in the literature", "What I did", "Shown in"],
             ["Noise amplification in dark regions is unsolved", "SNR-weighted loss, tested against a control run", "Proposed loss, Ablation"],
             ["Retinexformer: illumination-aware, not noise-aware", "Retinexformer as base; SNR map adds noise information", "Main model"],
             ["Methods judged by PSNR/SSIM, rarely by a machine task", "Detection study (YOLOv8) + dark-region PSNR", "Detection"],
             ["Diffusion: quality at a large speed cost", "Speed of every method on one GPU", "Efficiency"],
             ["Papers use different test protocols", "Reproduce Retinexformer + 8 baselines with one script", "Results, Reproduction"]]
     table(s, rows, 0.6, 1.6, 12.1, [4.9, 4.9, 2.3], size=15, row_h=0.62)
-    text(s, 0.6, 5.6, 12.1, 0.5, "Second half: plan the next step from this evidence (see Plan).", 17, BLUE, True)
+    text(s, 0.6, 5.6, 12.1, 0.5, "The final experiment puts SNR guidance inside attention.", 17, BLUE, True)
 
     # 7 ---------------------------------------------------------------- background
     s = slide("Background: Retinex theory and attention cost", """
@@ -509,7 +509,7 @@ Q: Why does SSIM differ from PSNR? A: PSNR is pixel error; SSIM compares local s
 SAY: This is the main comparison, all scored by the same script. Retinexformer has the best PSNR on both sets,
 {v('Retinexformer','LOLv1','psnr',2)} dB on LOL-v1. GSAD, the diffusion model, has the best LPIPS - its images look the most natural -
 but lower PSNR. Classical and zero-shot methods brighten the image but stay around 15 dB. My own re-training of Retinexformer reached
-{v('Retinexformer (my training)','LOLv1','psnr',2)} dB - I explain that gap on the next slide.
+{v('Retinexformer (my training)','LOLv1','psnr',2)} dB - I explain that gap on the reproduction slide.
 
 Q: Why is GSAD lower in PSNR but better in LPIPS? A: Diffusion creates realistic texture but its overall brightness is off, and PSNR
 punishes brightness errors heavily. Q: Why are dashes there? A: Those models were trained on LOL-v1, whose training set overlaps
@@ -650,27 +650,28 @@ Q: What would you do differently? A: Several seeds, larger test sets, and a nois
                 "Detector used as-is (not fine-tuned)", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
             x=8.1, y=1.7, w=5.0, size=16)
 
-    # 18 --------------------------------------------------------------- second-half work: done vs dropped
-    s = slide("What we did in the second half", """
-SAY: The second-half plan has now been carried out. I put the SNR map inside attention, swept the gate strength with three seeds,
-trained the selected variant and a matched control from scratch for 150k iterations, and evaluated both once on the held-out
-LOL-v2-syn test set. Only the detector fine-tuning step was dropped because the GPU quota ran out; the next slide gives the numbers.
+    # 18 --------------------------------------------------------------- SNR-attention work: done vs dropped
+    s = slide("SNR-guided attention: experimental design", """
+SAY: I put the SNR map inside attention, swept the gate strength with three seeds, trained the selected variant and a matched
+control from scratch for 150k iterations, and evaluated both once on the held-out LOL-v2-syn test set. Only the detector
+fine-tuning step was dropped because the GPU quota ran out; the following slide gives the numbers.
 
-Q: Why should SNR inside attention work better than in the loss? A: The loss only changes how errors are counted; guidance inside
-attention changes what information each region uses. In our experiment it still did not help, and the next slide explains why.""", "Second half")
-    plan = [("Done", "SNR guidance inside IG-MSA (parameter-free value gate)"),
-            ("Done", "Swept α = 0/2/4/8 with 3 seeds, 10k iterations"),
-            ("Done", "Matched 150k from-scratch runs; 100-image held-out test"),
-            ("Dropped", "YOLOv8 fine-tuning on enhanced ExDark — GPU quota"),
-            ("Final", "Report, slides and code release")]
-    for i, (a, b) in enumerate(plan):
+Q: Why did I try SNR inside attention rather than only in the loss? A: The loss only changes how errors are counted; guidance
+inside attention changes what information each region uses. In our experiment it still did not help, and the following slide
+explains why.""", "Contribution")
+    blocks = [("Done", "SNR guidance inside IG-MSA (parameter-free value gate)"),
+              ("Done", "Swept α = 0/2/4/8 with 3 seeds, 10k iterations"),
+              ("Done", "Matched 150k from-scratch runs; 100-image held-out test"),
+              ("Dropped", "YOLOv8 fine-tuning on enhanced ExDark — GPU quota"),
+              ("Final", "Report, slides and code release")]
+    for i, (a, b) in enumerate(blocks):
         y = 1.65 + i * 1.0
         box = s.shapes.add_shape(1, Inches(0.6), Inches(y), Inches(2.0), Inches(0.75))
         box.fill.solid(); box.fill.fore_color.rgb = BLUE; box.line.fill.background()
         text(s, 0.6, y, 2.0, 0.75, a, 16, RGBColor(0xFF, 0xFF, 0xFF), True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
         text(s, 2.9, y, 10, 0.75, b, 18, INK, anchor=MSO_ANCHOR.MIDDLE)
 
-    # 18b ------------------------------------------------------------- post-midsem SNR-guided attention
+    # 18b ------------------------------------------------------------- SNR-attention results
     # All numbers below are read from CSVs: sweep / final from snr_attention.csv, test from results.csv
     # and dark_region.csv, and the paired sign test from the per-image CSVs.
     sweep = [["Sweep: 10k iters, 3 seeds (LOL-v2-syn)", "Best val PSNR (dB)"],
@@ -682,18 +683,18 @@ attention changes what information each region uses. In our experiment it still 
              ["Control", attn_val("final", "0", "42")],
              ["Guided α = 4", attn_val("final", "4", "42")]]
     test = [["Held-out test (LOL-v2-syn, 100)", "PSNR ↑", "SSIM ↑", "LPIPS ↓", "Dark-30% PSNR ↑"],
-            ["Control", v("PostMidsem-control", "LOLv2-syn", "psnr", 4), v("PostMidsem-control", "LOLv2-syn", "ssim", 4),
-             v("PostMidsem-control", "LOLv2-syn", "lpips", 4), f"{float(DARK[('PostMidsem-control','LOLv2-syn')]['dark_psnr']):.4f}"],
-            ["Guided α = 4", v("PostMidsem-SNR-a4", "LOLv2-syn", "psnr", 4), v("PostMidsem-SNR-a4", "LOLv2-syn", "ssim", 4),
-             v("PostMidsem-SNR-a4", "LOLv2-syn", "lpips", 4), f"{float(DARK[('PostMidsem-SNR-a4','LOLv2-syn')]['dark_psnr']):.4f}"]]
-    c_full = per_image("per_image", "PostMidsem-control", "psnr", "LOLv2-syn")
-    g_full = per_image("per_image", "PostMidsem-SNR-a4", "psnr", "LOLv2-syn")
-    c_dark = per_image("per_image_dark", "PostMidsem-control", "dark_psnr", "LOLv2-syn")
-    g_dark = per_image("per_image_dark", "PostMidsem-SNR-a4", "dark_psnr", "LOLv2-syn")
+            ["Control", v("Final-control", "LOLv2-syn", "psnr", 4), v("Final-control", "LOLv2-syn", "ssim", 4),
+             v("Final-control", "LOLv2-syn", "lpips", 4), f"{float(DARK[('Final-control','LOLv2-syn')]['dark_psnr']):.4f}"],
+            ["Guided α = 4", v("Final-SNR-a4", "LOLv2-syn", "psnr", 4), v("Final-SNR-a4", "LOLv2-syn", "ssim", 4),
+             v("Final-SNR-a4", "LOLv2-syn", "lpips", 4), f"{float(DARK[('Final-SNR-a4','LOLv2-syn')]['dark_psnr']):.4f}"]]
+    c_full = per_image("per_image", "Final-control", "psnr", "LOLv2-syn")
+    g_full = per_image("per_image", "Final-SNR-a4", "psnr", "LOLv2-syn")
+    c_dark = per_image("per_image_dark", "Final-control", "dark_psnr", "LOLv2-syn")
+    g_dark = per_image("per_image_dark", "Final-SNR-a4", "dark_psnr", "LOLv2-syn")
     w_full, w_dark = sum(g_full[i] > c_full[i] for i in c_full), sum(g_dark[i] > c_dark[i] for i in c_dark)
     p_full, p_dark = sign_p(w_full, len(c_full)), sign_p(w_dark, len(c_dark))
-    s = slide("SNR-guided attention: second-half result", f"""
-SAY: In the second half I moved the SNR idea from the loss into the network: a parameter-free gate that scales IG-MSA value features
+    s = slide("SNR-guided attention: results", f"""
+SAY: I moved the SNR idea from the loss into the network: a parameter-free gate that scales IG-MSA value features
 with a rank-normalised, mean-one SNR map computed from |input - blur(input)|; alpha = 0 is bit-identical to the original block.
 First, a 10k-iteration sweep from scratch with 3 seeds: control {sweep[1][1]} dB, alpha2 {sweep[2][1]}, alpha4 {sweep[3][1]},
 alpha8 {sweep[4][1]} - control is best, and alpha4 was picked as the best guided variant. I then trained control and guided alpha4
@@ -704,7 +705,7 @@ control still wins: {test[1][1]} vs {test[2][1]} dB PSNR and {test[1][4]} vs {te
 Q: What does the gate do and why is it parameter-free? A: It uses the SNR map from the input to rescale the value features inside
 IG-MSA; there are no extra learned weights in the gate, only the existing attention parameters.
 Q: Why did the control win? A: The map also fires on edges, and Retinexformer already uses illumination to guide attention, so the
-extra scaling added no useful information for fidelity.""", "Post-midsem")
+extra scaling added no useful information for fidelity.""", "Contribution")
     table(s, sweep, 0.6, 1.5, 6.0, [3.7, 2.3], size=14, row_h=0.46,
           bold_cells=best_cells(sweep, [1], [True]))
     table(s, final, 6.85, 1.5, 5.85, [3.45, 2.4], size=14, row_h=0.5,
@@ -726,13 +727,13 @@ The common protocol revealed three things that published tables hide: a ground-t
 and the fact that enhancement does not help an off-the-shelf detector. My noise-aware loss, tested with a strict control, gives a
 consistent but negligible gain, and the analysis points to moving noise awareness into the attention itself. Thank you.
 
-Q: What is your main contribution so far? A: A careful, controlled evaluation - including detection and dark regions - and a tested,
-explained negative result that sets up the next step.""", "Conclusion")
+Q: What is your main contribution? A: A careful, controlled evaluation - including detection and dark regions - and a tested,
+explained negative result that shows where the method must change.""", "Conclusion")
     bullets(s, [f"Reproduced Retinexformer ({v('Retinexformer','LOLv1','psnr',2)} dB) + 8 baselines under one protocol",
                 "Found: GT-brightness trick (GSAD), LOL-v2-real / LOL-v1 overlap",
                 f"Raw images beat every enhancer for YOLOv8m (mAP50 {float(DET[('raw',)]['mAP50']):.3f})",
                 "SNR-weighted loss: consistent but negligible gain in dark regions",
-                "Next: noise awareness inside attention, larger tests"], x=0.6, y=1.6, w=12.2, size=19)
+                "SNR-guided attention inside the model: tested, no fidelity gain"], x=0.6, y=1.6, w=12.2, size=19)
     text(s, 0.6, 5.3, 12.2, 1.5,
          "Key references: Cai et al., Retinexformer, ICCV 2023 · Xu et al., SNR-Aware, CVPR 2022 · Hou et al., GSAD, NeurIPS 2023 · "
          "Wang et al., LLFormer, AAAI 2023 · Guo et al., Zero-DCE, CVPR 2020 · Ma et al., SCI, CVPR 2022 · "
@@ -740,8 +741,8 @@ explained negative result that sets up the next step.""", "Conclusion")
     text(s, 0.6, 4.5, 12.2, 0.7, "Thank you — questions?", 28, BLUE, True)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    prs.save(OUT / "midsem.pptx")
-    print(f"wrote {OUT / 'midsem.pptx'} ({N[0]} slides)")
+    prs.save(OUT / "final.pptx")
+    print(f"wrote {OUT / 'final.pptx'} ({N[0]} slides)")
 
 
 if __name__ == "__main__":

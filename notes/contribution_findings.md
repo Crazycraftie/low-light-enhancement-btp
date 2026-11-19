@@ -33,7 +33,7 @@ numbers: `results/tables.md` table 3. LOL-v1 has 15 test images, so whole-image 
 - **Short fine-tuning at a low LR (2e-5 → 1e-6)** from a converged model leaves little room for any loss to change behaviour.
 - **L1 is already robust**, so emphasising some pixels changes the optimum only slightly.
 
-**What to try in the second half of the project**
+**What to try next**
 - Put SNR guidance **inside the network** (e.g. SNR map as an extra input or attention mask, as SNR-Aware does)
   instead of in the loss.
 - Sweep **alpha** (2, 4, 8) and a sharper mapping (e.g. top-k darkest pixels only), with **several seeds** per setting
@@ -47,7 +47,7 @@ produces a consistent but practically negligible gain in dark regions (+0.01–0
 detection, or on unpaired sets. A negative result with a clear diagnosis is still a result — and the analysis above
 explains why and what would be more promising.
 
-## Second-half contribution: SNR guidance inside IG-MSA (also negative)
+## Attention-level contribution: SNR guidance inside IG-MSA (also negative)
 
 We moved the SNR map from the loss into the network: `scripts/snr_guidance.py` scales IG-MSA value features
 by a rank-normalized, mean-one noise map obtained from `|input - blur(input)|`. It adds **no parameters** and
@@ -65,7 +65,7 @@ alpha = 0 is bit-identical to the original block.
 
 **Honest interpretation.** Retinexformer's illumination estimator already encodes where an image is dark, so an
 extra multiplier on attention values supplies little new information; the residual-based map also responds to
-edges, not just noise. This mirrors the first-half finding: noise awareness as designed here does not help this
+edges, not just noise. This mirrors the loss-level finding: noise awareness as designed here does not help this
 architecture. With more compute the next step would be a *learned* noise-aware attention (extra input channel
 or predicted mask trained end-to-end), a flat-region-only noise estimator, and detector fine-tuning.
 **This negative result is the final answer to the proposed contribution.**

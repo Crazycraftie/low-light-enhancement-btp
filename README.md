@@ -72,22 +72,22 @@ force CPU there. NIQE needs float64 → CPU. Speeds were measured only on a Kagg
 | ExDark → YOLO | `scripts/exdark_to_yolo.py` → `scripts/check_labels.py` → `scripts/build_yolo_sets.py` → `scripts/yolo_eval.py` |
 | Speed on one GPU + GSAD on ExDark-200 | `notebooks/day2_speed_gsad_exdark.ipynb` |
 | SNR-loss experiment (runs A–D) | `scripts/losses.py`, `scripts/finetune.py`, `notebooks/day3_finetune.ipynb` |
-| Post-midsem SNR-attention experiments | `notebooks/post_midsem_experiments.ipynb`, `notebooks/final_6h.ipynb`, `notebooks/finish_from_v4.ipynb` |
+| SNR-guided attention experiments | `notebooks/snr_attention_experiments.ipynb`, `notebooks/snr_attention_resume.ipynb`, `notebooks/snr_attention_evaluate.ipynb` |
 | Dark-region metric | `python scripts/eval_dark_regions.py --pred <dir> --gt <dir> --low <dir> --method <name> --dataset LOLv1` |
 | Tables / plots / grids | `scripts/make_tables.py`, `scripts/plot_results.py`, `scripts/make_grid.py`, `scripts/find_failures.py` |
 
 Every script has a docstring with a usage example. All settings, problems and fixes are logged in
 [`notes/experiment_log.md`](notes/experiment_log.md); detection analysis in [`notes/detection_findings.md`](notes/detection_findings.md).
 
-## Post-midsem experiments — completed (negative result)
+## SNR-guided attention — completed (negative result)
 
 `scripts/snr_guidance.py` moves noise guidance from the loss into Retinexformer's IG-MSA attention: a rank-normalized,
 mean-one SNR gate scales the attention value features. It adds no parameters and alpha 0 is bit-identical to the
 original block.
 
-- `notebooks/post_midsem_experiments.ipynb`: LOL-v2-syn sweep (alpha 0/2/4/8, three seeds, 10k iterations).
+- `notebooks/snr_attention_experiments.ipynb`: LOL-v2-syn sweep (alpha 0/2/4/8, three seeds, 10k iterations).
   Mean validation PSNR: control 23.7666, alpha 2 23.5707, alpha 4 23.7365, alpha 8 23.6062 — the **control won**.
-- `notebooks/final_6h.ipynb` and `notebooks/finish_from_v4.ipynb`: matched 150k from-scratch runs (seed 42) and the
+- `notebooks/snr_attention_resume.ipynb` and `notebooks/snr_attention_evaluate.ipynb`: matched 150k from-scratch runs (seed 42) and the
   held-out 100-image test evaluation. Results (`results/results.csv`, `results/dark_region.csv`,
   `results/snr_attention.csv`): control 25.2136 dB / 26.3229 dB dark-30% vs guided alpha 4 24.8320 / 26.1988.
   The guided model is 0.3816 dB worse overall and 0.1241 dB worse in dark regions; no significant paired benefit

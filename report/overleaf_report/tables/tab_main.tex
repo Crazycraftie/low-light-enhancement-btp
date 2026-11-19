@@ -1,0 +1,21 @@
+\begin{tabular}{l ccc ccc ccc}
+\toprule
+ & \multicolumn{3}{c}{LOL-v1} & \multicolumn{3}{c}{LOL-v2-real} & \multicolumn{3}{c}{LOL-v2-syn} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Method & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$ & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$ \\
+\midrule
+Input (no enhancement) & 7.77 & 0.191 & 0.560 & 9.72 & 0.196 & 0.519 & 11.22 & 0.450 & 0.379 \\
+HE & 14.26 & 0.425 & 0.602 & 13.48 & 0.435 & 0.551 & 15.63 & 0.728 & 0.310 \\
+CLAHE & 9.13 & 0.356 & 0.503 & 11.54 & 0.420 & 0.424 & 12.45 & 0.556 & 0.360 \\
+Gamma ($\gamma{=}0.4$) & 14.53 & 0.620 & 0.351 & 18.70 & 0.659 & 0.318 & 18.11 & 0.827 & 0.183 \\
+\midrule
+Zero-DCE~\cite{guo2020zerodce} & 14.86 & 0.562 & 0.335 & 18.06 & 0.580 & 0.313 & 17.76 & 0.814 & 0.168 \\
+SCI~\cite{ma2022sci} & 14.85 & 0.527 & 0.339 & 17.36 & 0.542 & 0.307 & 15.43 & 0.747 & 0.233 \\
+\midrule
+SNR-Aware$^{\dagger}$~\cite{xu2022snr} & 24.61 & 0.840 & 0.151 & 21.48 & \textbf{0.848} & 0.157 & 24.14 & 0.927 & 0.056 \\
+LLFormer~\cite{wang2023llformer} & 23.65 & 0.816 & 0.169 & -- & -- & -- & -- & -- & -- \\
+GSAD~\cite{hou2023gsad} & 22.73 & \textbf{0.850} & \textbf{0.103} & 20.14 & 0.845 & \textbf{0.114} & 24.10 & 0.927 & \textbf{0.052} \\
+Retinexformer~\cite{cai2023retinexformer} & \textbf{25.15} & 0.843 & 0.131 & \textbf{22.79} & 0.839 & 0.171 & \textbf{25.67} & \textbf{0.928} & 0.059 \\
+Retinexformer (our re-training) & 23.10 & 0.828 & 0.143 & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}

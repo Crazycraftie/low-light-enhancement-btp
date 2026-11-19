@@ -1,7 +1,7 @@
 # Viva preparation — slide-by-slide guide
 
 How to use this file while practising:
-1. Open `presentation/midsem.pdf` next to this file and go slide by slide.
+1. Open `presentation/final.pdf` alongside this file and go slide by slide.
 2. For each slide: read **"On the slide"**, then **"Explain"** (every bullet / table row / picture in simple words),
    then say the **"Say it"** part out loud (about 1 minute), then answer the **questions** without looking.
 3. **My doubts (D1, D2, …)** are questions I asked myself while reviewing the slides — the panel may ask the same.
@@ -12,11 +12,11 @@ All numbers come from `results/*.csv` (same as the report). If unsure about a nu
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 1 — Title
 
-**On the slide:** title, "Mid-semester B.Tech Project evaluation", my name and roll number, supervisor, department.
+**On the slide:** title, "B.Tech Project evaluation — Final presentation", my name and roll number, supervisor, department.
 
 **Say it:** "Good morning. My project is about making very dark photos look as if they were taken in good light, and
-checking whether that actually helps a computer find objects in the dark. I will show what I reproduced, what I measured,
-one idea of my own that I tested, and my plan for the second half."
+checking whether that actually helps a computer find objects in the dark. I show what I reproduced, what I measured,
+the ideas I tested, and the SNR-guided attention experiment I ran."
 
 **Q: Why this topic?** Night photos, surveillance and driving all produce dark images; detectors fail on them; noise in
 dark regions is still an open problem (the TPAMI survey by Li et al. says so).
@@ -25,8 +25,8 @@ dark regions is still an open problem (the TPAMI survey by Li et al. says so).
 Length is normal for a research title (13 words). It has three parts and each matches real work:
 - *Transformer-based enhancement* = Retinexformer reproduced and compared with 8 baselines → strong match.
 - *Downstream object detection evaluation* = YOLOv8 on ExDark, raw vs every enhancer → strong match.
-- *Noise-aware* = SNR-weighted loss, a pilot at midsem; noise awareness inside the network comes in the second half →
-  it describes the full-year goal more than the midsem result.
+- *Noise-aware* = the SNR-weighted loss pilot plus SNR-guided attention inside the network; both were tested →
+  it matches the work I completed.
 Keep the title (it is likely the registered one).
 
 **D2. How do I explain the title?** (the full explanation is on slide 2 below)
@@ -49,7 +49,7 @@ bottom: Dark photo → Enhancer → Image quality + Object detection.
 - **Card 2 – Noise-aware.** When you brighten a dark image, the noise is brightened too, and the darkest parts are brightened
   most, so they become the noisiest. My SNR-weighted loss computes a signal-to-noise map from the dark input and gives
   low-SNR (dark/noisy) pixels more weight during training. Tested against a control run (same everything except the loss).
-  *Status: pilot tested; next step is noise awareness inside the network.*
+  *Status: pilot tested; noise awareness was also tested inside the network.*
 - **Card 3 – Downstream detection evaluation.** "Downstream" = a later task that uses the enhanced image. I run a ready-made
   detector (YOLOv8m) on 1,200 dark ExDark images: once on the raw images, once on each enhanced version. *Finding: better-looking ≠ better
   detection (raw best, mAP50 0.662)* (see D5).
@@ -82,9 +82,9 @@ also ask whether enhancement actually helps a detector find objects in the dark.
   the controlled A-vs-B experiment with a sign test; one fair benchmark of 9+ methods with the same script, plus dark-region
   PSNR and speed on one GPU; the detection study (raw beats every enhancer); the protocol findings (GSAD's GT-brightness trick
   worth 4.1–8.5 dB; 91/100 LOL-v2-real test images are LOL-v1 training images); the re-training gap (23.10 vs 25.16).
-- *How to say it:* "The first half built a reliable base: I reproduced the main paper and eight baselines under one fair
-  protocol and found two protocol issues. My SNR-weighted loss gave a consistent but very small gain, so I learned that changing
-  only the loss is not enough; in the second half the noise information goes inside the network."
+- *How to say it:* "I built a reliable base: I reproduced the main paper and eight baselines under one fair protocol and found
+  two protocol issues. My SNR-weighted loss gave a consistent but very small gain, so changing only the loss is not enough; I then
+  put the noise information inside the network and tested it."
 - Do NOT call the loss a success; do NOT say "first to discover" — say "I found / verified".
 
 **D4. "25.15 dB vs paper 25.16" — is that a bad result?**
@@ -111,19 +111,18 @@ It signifies two things: (1) Retinexformer's outputs are the closest to the corr
 If asked "is PSNR enough?": no — it only counts pixel differences; a slight brightness offset costs many dB even if the photo looks
 fine. That is why I also use SSIM, LPIPS, NIQE and detection accuracy.
 
-**D9. "Pilot tested; next: noise awareness inside the network" — what does it mean, and why not do it now?** (slide 2)
-Two places a model can know about noise: (1) in the LOSS (what I did): mistakes on dark/grainy pixels count more (up to 2×);
-the model itself is unchanged — like a teacher giving double marks for hard questions. (2) INSIDE THE NETWORK (next): the SNR
-map is an input the model uses while processing every image, e.g. inside Retinexformer's attention, noisy regions borrow from
-clean regions (as SNR-Aware does) — like giving the student a tool during the exam.
-"Pilot tested" = tried the simple version, measured it fairly against a control: consistent but very small gain in dark regions.
-Why not now: (a) cheapest test first — the loss change needs no model change, so I could fine-tune from released weights in
-hours; changing the model means training from scratch (150k iterations, many 12-hour Kaggle sessions, ~30 GPU h/week) — not
-possible in 3 coding days; (b) evidence first — now I know the map points to the right places (13/15 dark-region wins) but the
-loss alone is too weak, and the map also marks edges as noise, so that must be fixed too; (c) midsem = groundwork.
+**D9. "Pilot tested; noise awareness also tested inside the network" — what does it mean?** (slide 2)
+Two places a model can know about noise: (1) in the LOSS (what I did first): mistakes on dark/grainy pixels count more (up to 2×);
+the model itself is unchanged — like a teacher giving double marks for hard questions. (2) INSIDE THE NETWORK (what I did later):
+the SNR map is an input the model uses while processing every image, e.g. inside Retinexformer's attention, noisy regions borrow
+from clean regions (as SNR-Aware does) — like giving the student a tool during the exam.
+"Pilot tested" = I tried the simple version and measured it fairly against a control: a consistent but very small gain in dark
+regions. I then tested the second version: training from scratch (150k iterations, many 12-hour Kaggle sessions, ~30 GPU h/week —
+not possible in 3 coding days) with a parameter-free SNR gate inside attention. The map points to the right places (13/15
+dark-region wins in the loss experiment), but the loss alone was too weak, and the map also marks edges as noise.
 Say: "I started with the cheapest test, a loss change that needs no model change. It showed the noise map points to the right
-regions but the effect is too small, so the next step is using the SNR map inside attention, which needs training from scratch —
-planned for the second half."
+regions but the effect was too small, so I also put the SNR map inside attention and trained from scratch; that experiment was
+negative too."
 
 **D10. mAP50 0.662 is on the dark images — what are the scores on enhanced images?** (slide 2, detection slide)
 1,200 ExDark images (YOLOv8m, mAP50): raw 0.662 · Retinexformer 0.603 · SCI 0.595 · Zero-DCE 0.572.
@@ -132,8 +131,8 @@ Every enhancer is below raw; better restoration drops less. mAP50 = a box is cor
 right label; mAP combines "how many boxes are correct" and "how many objects were found", averaged over 12 classes (0–1).
 Why it drops: recall falls from 0.611 to 0.502–0.540 (more objects missed), precision about the same. YOLOv8 (COCO-trained) already
 copes with darkness; enhancement brightens noise and shifts colours (blanket turns yellow), so images look less familiar to it.
-If asked "is enhancement useless for detection?": "Not necessarily — I used the detector as is; in the second half I'll fine-tune
-YOLOv8 on enhanced images to see if enhancement helps once the detector adapts."
+If asked "is enhancement useless for detection?": "Not necessarily — I used the detector as is. I did not fine-tune YOLOv8 on
+enhanced images, so that question remains open; the detector fine-tuning run was dropped when the GPU quota ran out."
 
 **Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
@@ -141,7 +140,7 @@ YOLOv8 on enhanced images to see if enhancement helps once the detector adapts."
 Not what I hoped, but a correct and useful finding. Hypothesis: enhancement helps YOLOv8. Result: raw images mAP50 0.662, every
 enhancer lower (0.572–0.603). Holds on 1,200 and on 200 images; the loss is in recall, precision stays similar. Reason: YOLOv8
 (trained on COCO) is already fairly robust to darkness, while enhancement amplifies noise and shifts colours, so images look
-unlike what the detector learned. It shapes the next step (fine-tune the detector on enhanced images).
+unlike what the detector learned. It points to fine-tuning the detector on enhanced images as the relevant follow-up experiment.
 Say: "Looks better does not mean detects better — that is exactly why I evaluate on detection and not just PSNR."
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -157,7 +156,7 @@ detectors miss objects in the dark (machines suffer too, not only people).
 
 **Say it:** "On the left is a real photo from the LOL test set taken in very low light; on the right is the same photo after I ran
 Retinexformer on it. Dark images appear in phones, surveillance, driving and robots, and detectors work much worse on them. But
-simply brightening is not enough, because the noise is brightened too — that is the next slide."
+simply brightening is not enough, because the noise is brightened too — that is the subject of the following slide."
 
 **Questions:**
 - *Can't we just increase the exposure?* Longer exposure → motion blur; higher ISO → more noise. Enhancement after capture avoids
@@ -212,7 +211,7 @@ under each, a row of orange boxes "What each stage left open", two bullets.
 - **Zero-shot (EnlightenGAN, Zero-DCE, RUAS, SCI):** no pairs needed; tiny and fast; but they do not remove noise.
 - **Transformers (SNR-Aware, LLFormer, Retinexformer)** — highlighted: attention captures long-range relations → best fidelity.
 - **Diffusion (GSAD, Diff-Retinex):** generative models that create realistic texture, but run the network many times → slow.
-**Orange row — what each stage left open (= why the next stage came):** classical: no learning, no noise model → CNNs learn
+**Orange row — what each stage left open (= why the following stage came):** classical: no learning, no noise model → CNNs learn
 from data; CNNs: need paired dark/bright data → zero-shot methods need no pairs; zero-shot: brighten the noise too →
 transformers restore better; transformers: not noise-aware, and attention is costly (Retinexformer fixes the cost with channel
 attention, not the noise); diffusion: very slow because it runs the network many times.
@@ -253,9 +252,9 @@ SNR-Aware is the only one that explicitly measures noise — that idea inspired 
   based on Retinex theory so it is explainable.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 7 — Research gap and objectives of this midsem
+## Slide 7 — Research gap and objectives
 
-**On the slide:** a table "Gap in the literature | What I did in the first half | Shown in", and one blue line.
+**On the slide:** a table "Gap in the literature | What I did | Shown in", and one blue line.
 
 **Explain each row:**
 1. *Noise amplification in dark regions is unsolved* → I designed an SNR-weighted loss and tested it against a control run
@@ -266,7 +265,7 @@ SNR-Aware is the only one that explicitly measures noise — that idea inspired 
 4. *Diffusion: quality at a large speed cost* → I timed every method on the same GPU → "Efficiency".
 5. *Papers use different test protocols* (e.g. GSAD's ground-truth trick) → I reproduced Retinexformer + 8 baselines and scored
    all of them with ONE script → "Results", "Reproduction".
-**Blue line:** the second-half plan is based on this evidence.
+**Blue line:** the final experiment puts SNR guidance inside attention.
 
 **Say it:** "Each row pairs a gap with what I did about it and where I show it."
 
@@ -560,7 +559,7 @@ GSAD 2.4–4.9 s per image.
 - *What would you do differently?* Several seeds, larger test sets, and a noise estimate that ignores edges.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 19 — What we did in the second half
+## Slide 19 — SNR-guided attention: experimental design
 
 **On the slide:** five blocks — three *Done*, one *Dropped*, one *Final*.
 
@@ -575,10 +574,10 @@ GSAD 2.4–4.9 s per image.
 **Questions:**
 - *Why should SNR inside attention work better than in the loss?* The loss only changes how errors are counted; guidance inside
   attention changes which information each region uses. That was the hypothesis; the experiment showed it still did not help,
-  and the next slide gives the numbers and the explanation.
+  and the following slide gives the numbers and the explanation.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 20 — SNR-guided attention: second-half result (post-midsem)
+## Slide 20 — SNR-guided attention: results
 
 **On the slide:** three result tables plus one takeaway line. (1) Sweep at 10k iterations from scratch, mean of 3 seeds on
 LOL-v2-syn: control **23.7666**, α2 **23.5707**, α4 **23.7365**, α8 **23.6062** dB best validation PSNR — control is best;
@@ -609,7 +608,7 @@ This is an honest negative result: the gate as designed does not improve fidelit
 - *What does the sign test say?* Guided wins 46/100 images overall (two-sided p = 0.4841) and 53/100 in the darkest 30%
   (p = 0.6173). Neither is distinguishable from a coin flip. The mean paired difference is −0.3816 dB overall and −0.1241 dB
   in dark regions — the direction is negative, not just statistically inconclusive.
-- *Why is this still a valid result?* It is a pre-planned, matched comparison with a seeding sweep, a no-op (α = 0) control
+- *Why is this still a valid result?* It is a matched comparison with a seeding sweep, a no-op (α = 0) control
   and a single held-out evaluation. A reproducible negative result is a real finding: it shows this particular gate does not
   help fidelity and redirects the work (e.g. fix the noise estimate, try a different insertion point) instead of cherry-picking
   a win.
@@ -626,12 +625,12 @@ This is an honest negative result: the gate as designed does not improve fidelit
 - Found: GT-brightness trick (GSAD) and LOL-v2-real / LOL-v1 overlap → how published numbers should be read.
 - Raw images beat every enhancer for YOLOv8m (mAP50 0.662) → looks better ≠ detects better.
 - SNR-weighted loss: consistent but negligible gain in dark regions → change only the loss is not enough.
-- Next: noise awareness inside attention, larger tests.
+- SNR-guided attention inside the model: tested, no fidelity gain.
 - Then "Thank you — questions?" and the key references (full list in the report).
 
 **Questions:**
-- *Main contribution so far?* A careful, controlled evaluation — including detection and dark regions — and a tested, explained
-  negative result that sets up the next step.
+- *Main contribution?* A careful, controlled evaluation — including detection and dark regions — and a tested, explained
+  negative result that shows where the method must change.
 
 =====================================================================================================================
 # Part B — 20 general questions (practise without slides)
@@ -724,10 +723,11 @@ has no raw-image row. I test an off-the-shelf detector, so the two results answe
 I compared outputs directly: on the Mac GPU (MPS), LLFormer was up to 2 dB wrong and YOLOv8 gave mAP50 0.42 instead of 0.65 on
 the same images. Retinexformer, Zero-DCE and SCI matched the CPU to within one grey level. All timings come from one Kaggle T4.
 
-**20. What will you do in the second half?**
-Move noise awareness into the network: use the SNR map inside IG-MSA (as SNR-Aware does inside attention), with a noise estimate
-that ignores edges; sweep α with 3 seeds; train the best variant from scratch; evaluate on larger test sets; and fine-tune
-YOLOv8 on enhanced images to test whether enhancement helps when the detector can adapt.
+**20. What would you do next with more time?**
+I already moved noise awareness into the network with the SNR map inside IG-MSA (as SNR-Aware does inside attention), swept α
+with 3 seeds and trained the best variant from scratch — that gave a negative result. With more time I would fix the noise estimate
+so it ignores edges, retry the gate at other insertion points with more seeds, evaluate on larger test sets, and fine-tune YOLOv8
+on enhanced images to test whether enhancement helps once the detector can adapt.
 
 ---
 # Part C — one honest mistake story

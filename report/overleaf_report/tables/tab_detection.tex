@@ -1,0 +1,13 @@
+\begin{tabular}{l ccc ccc}
+\toprule
+ & \multicolumn{3}{c}{1{,}200 images} & \multicolumn{3}{c}{200-image subset} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Input to YOLOv8m & mAP50 & mAP50-95 & Recall & mAP50 & mAP50-95 & Recall \\
+\midrule
+Raw (no enhancement) & \textbf{0.662} & \textbf{0.345} & \textbf{0.611} & \textbf{0.707} & \textbf{0.378} & \textbf{0.637} \\
+Zero-DCE & 0.572 & 0.291 & 0.502 & 0.603 & 0.317 & 0.513 \\
+SCI & 0.595 & 0.301 & 0.529 & 0.625 & 0.330 & 0.577 \\
+Retinexformer & 0.603 & 0.310 & 0.540 & 0.628 & 0.340 & 0.553 \\
+GSAD & -- & -- & -- & 0.633 & 0.342 & 0.560 \\
+\bottomrule
+\end{tabular}

@@ -10,7 +10,7 @@
   "pretrained": null,
   "opt": "baselines/Retinexformer/Options/RetinexFormer_LOL_v1.yml",
   "data": "data/LOLv2/Synthetic/Train",
-  "out": "runs/post_midsem/final/control",
+  "out": "runs/snr_attention/final/control",
   "repo": "baselines/Retinexformer",
   "device": "Tesla T4",
   "limit_images": 0,

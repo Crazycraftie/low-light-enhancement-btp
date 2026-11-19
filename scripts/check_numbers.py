@@ -4,7 +4,7 @@ to results/*.csv?
 
 How it works:
   1. Collect every decimal number (e.g. 25.15, 0.843, 151.3) from report/main.tex, report/tables/*.tex,
-     README.md and presentation/midsem.pptx (slide text, tables and notes).
+     README.md and presentation/final.pptx (slide text, tables and notes).
   2. Build the set of ALLOWED values: every numeric cell of every results/*.csv (incl. per-image files),
      rounded to 0-4 decimals, plus values that are derived on purpose (differences, ratios, timings in seconds),
      each listed below with how it is computed.
@@ -55,11 +55,11 @@ def allowed_values():
         "gsad10_s": float(sp["GSAD (LOLv2-real weights, 10 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad20_s": float(sp["GSAD (LOLv1 weights, 20 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad_exdark_s": float(sp["GSAD (LOLv1 weights, 20 steps) on ExDark-200"]["ms_per_image"]) / 1000,
-        # Post-midsem SNR-guided attention: guided minus control on the held-out test set
-        "snr_full_diff": float(res[("PostMidsem-SNR-a4", "LOLv2-syn")]["psnr"])
-                         - float(res[("PostMidsem-control", "LOLv2-syn")]["psnr"]),
-        "snr_lpips_diff": float(res[("PostMidsem-SNR-a4", "LOLv2-syn")]["lpips"])
-                          - float(res[("PostMidsem-control", "LOLv2-syn")]["lpips"]),
+        # SNR-guided attention: guided minus control on the held-out test set
+        "snr_full_diff": float(res[("Final-SNR-a4", "LOLv2-syn")]["psnr"])
+                         - float(res[("Final-control", "LOLv2-syn")]["psnr"]),
+        "snr_lpips_diff": float(res[("Final-SNR-a4", "LOLv2-syn")]["lpips"])
+                          - float(res[("Final-control", "LOLv2-syn")]["lpips"]),
         "snr_dark_diff": 26.1988 - 26.3229,   # dark_region.csv, LOLv2-syn
     }
     # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
@@ -95,7 +95,7 @@ def sources():
     for p in sorted((ROOT / "report/tables").glob("*.tex")):
         yield f"report/tables/{p.name}", p.read_text()
     yield "README.md", (ROOT / "README.md").read_text()
-    prs = Presentation(ROOT / "presentation/midsem.pptx")
+    prs = Presentation(ROOT / "presentation/final.pptx")
     for i, s in enumerate(prs.slides, 1):
         parts = []
         for sh in s.shapes:

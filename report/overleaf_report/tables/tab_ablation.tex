@@ -1,0 +1,14 @@
+\begin{tabular}{l ccc c cc c c c}
+\toprule
+ & \multicolumn{3}{c}{LOL-v1} & Dark 30\% & \multicolumn{2}{c}{Wins vs.\ A} & LOL-v2-syn & NIQE & ExDark-200 \\
+\cmidrule(lr){2-4}\cmidrule(lr){6-7}
+Run & PSNR$\uparrow$ & SSIM$\uparrow$ & LPIPS$\downarrow$ & PSNR$\uparrow$ & image & dark & PSNR$\uparrow$ & mean$\downarrow$ & mAP50$\uparrow$ \\
+\midrule
+Released (start point) & \textbf{25.15} & \textbf{0.843} & \textbf{0.131} & \textbf{25.31} & -- & -- & 16.19 & \textbf{3.644} & \textbf{0.627} \\
+\midrule
+A: $\mathcal{L}_1$ (control) & 24.31 & 0.842 & 0.132 & 24.89 & -- & -- & 16.61 & \textbf{3.644} & \textbf{0.627} \\
+B: $\mathcal{L}_{\mathrm{SNR}}$ (ours) & 24.32 & 0.842 & \textbf{0.131} & 24.91 & 11/15 & 13/15 & \textbf{16.62} & 3.704 & 0.626 \\
+C: $\mathcal{L}_1{+}\lambda\mathcal{L}_{\mathrm{FFT}}$ & 24.31 & 0.842 & \textbf{0.131} & 24.89 & 8/15 & 3/15 & 16.61 & \textbf{3.644} & 0.626 \\
+D: $\mathcal{L}_{\mathrm{SNR}}{+}\lambda\mathcal{L}_{\mathrm{FFT}}$ & 24.32 & 0.842 & \textbf{0.131} & 24.91 & 10/15 & 12/15 & \textbf{16.62} & 3.696 & 0.626 \\
+\bottomrule
+\end{tabular}

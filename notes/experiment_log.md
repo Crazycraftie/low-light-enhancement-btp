@@ -91,7 +91,7 @@ images, sign test p = 0.007, +0.01–0.05 dB); LOL-v2-syn 16.61–16.62 (start 1
 Kaggle T4: 0.31 s/iter (B, D) vs 0.29 s/iter (A, C) — the SNR map costs ~6%.
 Interpretation: `notes/contribution_findings.md`. Tables: `results/tables.md`.
 
-## 5. Post-midsem follow-up — run package prepared, GPU results pending
+## 5. SNR-guided attention follow-up — run package prepared
 
 The approved next experiment moves SNR guidance into IG-MSA. `scripts/snr_guidance.py` derives the same
 rank-normalized, mean-one map from the low-light input, resizes it for each attention block, and scales the value
@@ -111,7 +111,7 @@ split, periodic PSNR, and atomic/resumable model+optimizer checkpoints. The Kagg
   from the same COCO checkpoint on raw and SNR-enhanced images, then evaluate on the existing fixed 1,200-image
   split-3 test subset in both raw and enhanced pixel domains.
 
-Kaggle workflows: `notebooks/post_midsem_experiments.ipynb` and `notebooks/post_midsem_detection.ipynb`.
+Kaggle workflows: `notebooks/snr_attention_experiments.ipynb` and `notebooks/snr_attention_detection.ipynb`.
 Smoke checks for model parity, scratch/pretrained training, resume, inference, and ExDark label conversion passed
 locally on 2026-11-15. Full GPU runs, final metric imports, and report/slide updates remain pending; do not treat the
 planned settings as results.
@@ -126,14 +126,14 @@ planned settings as results.
   control stopped at **116,500** iterations (last logged speed 0.305 s/iter), guided alpha 4 at
   **123,500** (0.288 s/iter). Both have `latest_state.pth` (model + optimizer + scheduler), so they are
   resumable. Best validation PSNR so far: control 24.8936 at 75k, guided 24.7072 at 105k.
-- No test evaluation has been run: `results/results.csv` has no `PostMidsem` rows and no test-results zip
-  was downloaded. Do not quote any post-midsem test numbers yet.
-- Compressed continuation: `notebooks/final_6h.ipynb` resumes both runs on one T4 (~5 h), then evaluates
+- No test evaluation has been run: `results/results.csv` has no `Final` rows and no test-results zip
+  was downloaded. Do not quote any SNR-attention test numbers yet.
+- Compressed continuation: `notebooks/snr_attention_resume.ipynb` resumes both runs on one T4 (~5 h), then evaluates
   the 100-image LOL-v2-syn test set once with `best.pth`. ExDark detector fine-tuning is dropped for quota.
 
-### 2026-11-19 — final post-midsem results (imported from `final_results.zip`)
+### 2026-11-19 — final SNR-attention results (imported from `final_results.zip`)
 
-Both 150k runs finished (control exit 0; guided needed one more resume in `notebooks/finish_from_v4.ipynb`).
+Both 150k runs finished (control exit 0; guided needed one more resume in `notebooks/snr_attention_evaluate.ipynb`).
 Final best validation PSNR: control 24.8936, guided (alpha 4) 24.7072. The held-out 100-image LOL-v2-syn
 test set was evaluated once, after alpha was fixed:
 
@@ -149,6 +149,6 @@ LPIPS is 0.0002 lower for guided — negligible and not a meaningful quality gai
 released Retinexformer scores 25.6693 dB on this test set, so the re-trained control is close.
 
 Imported files: `results/results.csv`, `results/dark_region.csv`, four `results/per_image*` CSVs, the two
-run configs/logs in `runs/post_midsem/final/`, and `results/snr_attention.csv` (all 12 sweep seeds plus
-both final validation PSNRs). `notebooks/finish_from_v4.ipynb` contains the last resume + evaluation.
+run configs/logs in `runs/snr_attention/final/`, and `results/snr_attention.csv` (all 12 sweep seeds plus
+both final validation PSNRs). `notebooks/snr_attention_evaluate.ipynb` contains the last resume + evaluation.
 ExDark detector fine-tuning was dropped for GPU quota; no such results should be claimed.

@@ -1,0 +1,18 @@
+\begin{tabular}{ll cc cc r}
+\toprule
+ & & \multicolumn{2}{c}{Reported} & \multicolumn{2}{c}{Ours} & \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Method & Set & PSNR & SSIM & PSNR & SSIM & $\Delta$PSNR \\
+\midrule
+Retinexformer & LOL-v1 & 25.16 & 0.845 & 25.15 & 0.843 & -0.01 \\
+Retinexformer & LOL-v2-real & 22.80 & 0.840 & 22.79 & 0.839 & -0.01 \\
+Retinexformer & LOL-v2-syn & 25.67 & 0.930 & 25.67 & 0.928 & 0.00 \\
+SNR-Aware$^{\dagger}$ & LOL-v1 & 24.61 & 0.842 & 24.61 & 0.840 & 0.00 \\
+SNR-Aware$^{\dagger}$ & LOL-v2-real & 21.48 & 0.849 & 21.48 & 0.848 & 0.00 \\
+SNR-Aware$^{\dagger}$ & LOL-v2-syn & 24.14 & 0.928 & 24.14 & 0.927 & 0.00 \\
+LLFormer & LOL-v1 & 23.65 & 0.816 & 23.65 & 0.816 & 0.00 \\
+GSAD$^{\ddagger}$ & LOL-v1 & 27.84 & 0.877 & 27.57 & 0.875 & -0.27 \\
+GSAD$^{\ddagger}$ & LOL-v2-real & 28.82 & 0.895 & 28.68 & 0.893 & -0.14 \\
+GSAD$^{\ddagger}$ & LOL-v2-syn & 28.67 & 0.944 & 28.24 & 0.942 & -0.43 \\
+\bottomrule
+\end{tabular}

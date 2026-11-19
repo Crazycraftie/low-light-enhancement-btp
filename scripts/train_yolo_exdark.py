@@ -18,7 +18,7 @@ def main():
     parser.add_argument("--device", default="0")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--patience", type=int, default=10)
-    parser.add_argument("--project", default=str(ROOT / "runs" / "post_midsem_detector"))
+    parser.add_argument("--project", default=str(ROOT / "runs" / "detection_finetune"))
     args = parser.parse_args()
 
     if args.epochs < 1 or args.imgsz < 1 or args.batch < 1:

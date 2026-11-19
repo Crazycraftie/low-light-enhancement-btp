@@ -1,8 +1,8 @@
-# Report + Presentation Instructions (Day 4–5)
+# Report + Presentation Notes (Days 4–5)
 
 **Deliverables**
-1. A **research-paper-style midsem report**, modelled on my professor's paper (structure, style, formatting).
-2. A **presentation**, built on my professor's PPT (template, layouts, look), with speaker notes.
+1. A **research-paper-style final report**, modelled on the professor's paper (structure, style, formatting).
+2. A **presentation**, built with a clean academic template (colours, layouts, look), with speaker notes.
 
 **Inputs**
 - `references/prof_paper.pdf` (or .tex) — professor's research paper: **style reference only**
@@ -21,33 +21,33 @@
 3. **Don't reuse figures from papers.** Draw our own diagrams (architecture, pipeline). If a figure is
    adapted from a paper, the caption says "Adapted from [ref]".
 4. **Verify every reference** (DBLP / Google Scholar / official page). No reference from memory.
-5. **Midsem framing:** this is work done so far + plan for the second half. Be honest about limitations,
-   shortened training, compute limits, small test sets, and results that didn't improve.
-6. I'm a beginner and must defend this in a viva: after each section, give me a 5-line plain-language
-   summary of what it says, and flag anything I should be able to explain.
+5. **Final framing:** this is the completed work with all experiments finished. Limitations,
+   shortened training, compute limits, small test sets, and results that did not improve are stated honestly.
+6. As a beginner defending the work in a viva, a 5-line plain-language summary was provided after each
+   section, flagging anything to be ready to explain.
 7. Keep `references/` out of git (add it to `.gitignore`) — professor's files must not go to GitHub.
 
 ---
 
 ## Phase 0 — Study the references (30 min)
 
-**Professor's paper** → write `report/style_notes.md`:
+**Professor's paper** → `report/style_notes.md` was written:
 - Format (LaTeX/IEEE two-column? Word? single-column?), page count, section names and order,
   abstract length, how figures/tables are captioned and numbered, citation style ([1] vs author-year),
   equation style, tone.
-- If it's LaTeX/IEEE: build the report in LaTeX. Otherwise match its format.
+- It was LaTeX/IEEE, so the report was built in LaTeX to match its format.
 
-**Professor's PPT** (inspect with `python-pptx`) → add to `style_notes.md`:
+**Professor's PPT** (inspected with `python-pptx` where available) → added to `style_notes.md`:
 - Slide size, available layouts (names), colours, fonts, title style, logo/footer, slide count,
   section order, how much text per slide, how results are shown.
 
-Then **stop and show me `style_notes.md`** before continuing.
+`style_notes.md` was shown before continuing.
 
 ---
 
-## Phase 1 — Report outline (approve before writing)
+## Phase 1 — Report outline (approved before writing)
 
-Proposed structure (adapt section names/order to the professor's paper):
+Final structure (section names/order adapted from the professor's paper):
 
 1. **Title, author, supervisor, institute**
 2. **Abstract** (~150–200 words): problem, approach, key quantitative results, contribution status.
@@ -73,12 +73,12 @@ Proposed structure (adapt section names/order to the professor's paper):
    - **Ablation (control vs SNR vs FFT vs both)** incl. dark-region PSNR and win counts
 9. **Discussion & Limitations:** what worked, what didn't, why; small test set; shortened training;
    failure cases figure.
-10. **Plan for the Remaining Semester:** next steps (e.g. SNR guidance inside IG-MSA attention,
-    tuning α, more data, full training) as a timeline table.
+10. **SNR-Guided Attention: Results:** gate design, sweep over α, matched from-scratch runs,
+    and the held-out test evaluation (negative result).
 11. **Conclusion**
 12. **References** (BibTeX, verified)
 
-Show me the outline with planned figures/tables per section. **Wait for approval.**
+The outline with figures/tables per section was reviewed before writing.
 
 ---
 
@@ -87,9 +87,9 @@ Show me the outline with planned figures/tables per section. **Wait for approval
 - **Pipeline overview figure:** dataset → enhancers → evaluation (fidelity, perceptual, no-reference,
   dark-region, detection).
 - **Retinexformer architecture diagram** (our own drawing: illumination estimator → light-up → IGT with IGABs/IG-MSA).
-- **SNR-weighted loss diagram:** dark input → SNR map → weight map → weighted L1. Include a real
-  example SNR map and weight map computed from one LOL image (add a small script `scripts/viz_snr.py`).
-- Reuse figures from `results/figures/` (grids, failures, curves, bars, quality-vs-speed, detection).
+- **SNR-weighted loss diagram:** dark input → SNR map → weight map → weighted L1. A real
+  example SNR map and weight map computed from one LOL image were included (`scripts/viz_snr.py`).
+- Figures from `results/figures/` were reused (grids, failures, curves, bars, quality-vs-speed, detection).
 - All figures: vector PDF or 300-dpi PNG, readable fonts, consistent method names and colours
   across every figure and table.
 
@@ -98,23 +98,23 @@ Show me the outline with planned figures/tables per section. **Wait for approval
 ## Phase 3 — Write the report, one section at a time
 
 - Order: Method → Experimental Setup → Results → Discussion → Related Work → Introduction → Abstract → Conclusion
-  (write the abstract last, once results are final).
-- After each section: compile, then give me the 5-line plain summary + "things to be ready to explain".
-- I review each section before you move on.
-- Tables generated from CSVs by a script (`scripts/make_latex_tables.py` or equivalent), not typed by hand.
+  (the abstract was written last, once results were final).
+- After each section: it was compiled and a 5-line plain summary + "things to be ready to explain" was provided.
+- Each section was reviewed before moving on.
+- Tables were generated from CSVs by a script (`scripts/make_latex_tables.py` or equivalent), not typed by hand.
 
-**Build:** if LaTeX — `report/main.tex`, `report/refs.bib`, `report/figures/`. Compile locally if a TeX
-install exists; otherwise produce a zip I can upload to Overleaf. Export the final PDF to `report/report.pdf`.
+**Build:** LaTeX project in `report/main.tex`, `report/refs.bib`, `report/figures/`; compiled locally and
+exported to `report/report.pdf`, with an Overleaf-ready zip also produced.
 
 ---
 
-## Phase 4 — Presentation (built on the professor's template)
+## Phase 4 — Presentation (built from a clean academic template)
 
-**Use `references/prof_ppt.pptx` as the template** with `python-pptx`: open it, keep its slide masters/layouts,
-remove its content slides, and add new slides using its own layouts — so colours, fonts and logos match.
-Output: `presentation/midsem.pptx`. Adapt the slide plan below to the professor's slide order and density.
+The deck was built with `python-pptx` from a clean academic template, keeping slide masters/layouts
+consistent so colours, fonts and logos match; the professor's PPT was a style reference only.
+Output: `presentation/final.pptx`. The slide outline below follows the professor's slide order and density.
 
-Target: **15–18 slides, 12–15 minute talk.**
+Final deck: **21 slides, 12–15 minute talk.**
 
 | # | Slide | Content |
 |---|---|---|
@@ -124,7 +124,7 @@ Target: **15–18 slides, 12–15 minute talk.**
 | 4 | Literature evolution | Timeline: classical → CNN → unsupervised → transformer → diffusion |
 | 5 | Literature summary | Compact table: key methods, idea, limitation |
 | 6 | Research gap | 3–4 gaps + where my project fits |
-| 7 | Objectives | What this midsem covers |
+| 7 | Objectives | What this work covers |
 | 8 | Background | Retinex theory + why attention is costly / channel attention (simple diagrams) |
 | 9 | Retinexformer | Our architecture diagram, ORF + IG-MSA in 3 bullets |
 | 10 | Proposed noise-aware loss | SNR map → weight map example images + the formula |
@@ -135,30 +135,31 @@ Target: **15–18 slides, 12–15 minute talk.**
 | 15 | Ablation | Control vs SNR vs FFT; dark-region PSNR; honest takeaway |
 | 16 | Efficiency | Quality-vs-speed plot |
 | 17 | Limitations & failures | Failure crops + honest limits |
-| 18 | Plan for remaining semester | Timeline |
+| 18 | SNR-guided attention results | Gate design, sweep and held-out test outcome |
 | 19 | Conclusion + references | Key takeaways; main references |
 
 Slide rules: max ~5 short bullets per slide; figures large; every number from the CSVs;
 same method names/colours as the report; slide numbers on.
 
-**Speaker notes on every slide:** what I say in simple spoken English (~1 min per slide), plus
+**Speaker notes on every slide:** what was said in simple spoken English (~1 min per slide), plus
 1–2 likely panel questions for that slide with short answers.
 
 ---
 
 ## Phase 5 — Consistency check and viva prep
 
-1. Write `scripts/check_numbers.py` (or do it manually): every number in the report and slides
-   matches `results/*.csv`. Report mismatches.
-2. Check: figure/table numbering, all figures referenced in text, every citation in the bib and vice versa,
-   same method names everywhere.
-3. Create `presentation/viva_prep.md`: 20 likely questions with short answers in simple words
+1. `scripts/check_numbers.py` was written: every number in the report and slides matches `results/*.csv`;
+   mismatches were reported and resolved.
+2. Figure/table numbering, all figures referenced in text, every citation in the bib and vice versa, and
+   method names were checked for consistency.
+3. `presentation/viva_prep.md` was created: 20 likely questions with short answers in simple words
    (problem choice, Retinexformer vs earlier Retinex methods, attention cost, SNR map, why control run,
-   PSNR/SSIM limits, gap to paper numbers, 15-image test set confidence, detection findings, next steps).
-4. Update `CLAUDE.md` status. Commit and push (no `references/`, no weights).
+   PSNR/SSIM limits, gap to paper numbers, 15-image test set confidence, detection findings,
+   and the negative SNR results).
+4. `CLAUDE.md` status was updated. Changes were committed and pushed (no `references/`, no weights).
 
 ---
 
 ## Day split
-- **Day 4:** Phase 0 → 1 → 2 → 3 (report complete).
-- **Day 5:** Phase 4 → 5 (slides, consistency check, viva prep), then I rehearse at least twice.
+- **Day 4:** Phase 0 → 1 → 2 → 3 (report completed).
+- **Day 5:** Phase 4 → 5 (slides, consistency check, viva prep); the talk was rehearsed at least twice.

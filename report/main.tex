@@ -1,5 +1,5 @@
 \documentclass[journal]{IEEEtran}
-% Midsem B.Tech Project report. Build: tectonic main.tex  (or upload report/ to Overleaf, pdfLaTeX/XeLaTeX)
+% B.Tech Project research report. Build: tectonic main.tex  (or upload report/ to Overleaf, pdfLaTeX/XeLaTeX)
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -16,7 +16,7 @@
 \begin{document}
 
 \title{Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation\\
-\large Mid-Semester B.Tech Project Report}
+\large B.Tech Project Research Report}
 
 \author{Dhirendra Pratap Singh (2301EE49)\\
 Supervisor: Dr.~Rajib Kumar Jha\\
@@ -37,7 +37,7 @@ worth 4--8.5~dB, that 91 of the 100 LOL-v2-real test images also appear in the L
 enhancer improves zero-shot detection on ExDark (mAP50 0.662 on raw images vs.\ at most 0.603 after enhancement).
 Finally, we test a noise-aware, SNR-weighted training loss in a controlled fine-tuning experiment. It yields a
 consistent but very small gain in dark regions (13 of 15 test images, +0.02~dB on average) and no measurable gain
-otherwise. The second-half experiment, which moves SNR awareness into the transformer's attention, was completed and
+otherwise. The attention-guided experiment, which moves SNR awareness into the transformer's attention, was completed and
 also produced a negative result: in a matched from-scratch comparison the ungated control beat the guided model by
 0.38~dB on a held-out test set, with no significant gain in dark regions. We discuss why neither use of SNR helps this
 model.
@@ -124,7 +124,7 @@ control on validation or held-out test data.
 \end{itemize}
 Section~\ref{sec:background} gives background, Section~\ref{sec:method} the methods, Section~\ref{sec:setup} the
 experimental setup and Section~\ref{sec:results} the results. Section~\ref{sec:discussion} discusses limitations,
-Section~\ref{sec:snr} the second-half results, and Section~\ref{sec:conclusion} concludes.
+Section~\ref{sec:snr} the SNR-attention results, and Section~\ref{sec:conclusion} concludes.
 
 % =====================================================================================================
 \section{Background}\label{sec:background}
@@ -222,7 +222,7 @@ exactly one. The SNR-weighted loss between output $\hat{Y}$ and ground truth $Y$
 \end{equation}
 
 \emph{Two design decisions.} Both were made after measuring the SNR maps of LOL-v1 training images
-(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail; with min--max normalization, as initially planned,
+(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail; with min--max normalization, our initial choice,
 93\% of the pixels of the example image receive a weight above 1.9, so the ``weighted'' loss would be nearly twice the
 $\ell_1$ loss everywhere. That is a disguised doubling of the learning rate, not a re-weighting, and it would confound
 the comparison with the control. Rank normalization spreads the weights evenly. Second, dividing by the mean keeps
@@ -528,7 +528,7 @@ affected equally, the A--B comparison remains fair.
 meaningful; one random seed was used per run; training was limited by the free GPU quota (about 30 hours per week);
 the detection study uses one detector without fine-tuning and ExDark labels are imperfect; GSAD was run on 200 ExDark
 images only; SNR-Aware could only be evaluated on released images. Fig.~\ref{fig:fail} shows shared failures: text on a
-bottle in image 493 is lost by every method, including ours. In the second half, only one seed was run at the full
+bottle in image 493 is lost by every method, including ours. For the attention experiment, only one seed was run at the full
 150k-iteration length, so the final comparison cannot separate the gate's effect from run-to-run variance; the 10k
 sweep used three seeds but short runs need not predict long-run behaviour, and the held-out test set was evaluated only
 once. Detector fine-tuning on enhanced ExDark training images was dropped for lack of GPU quota, so whether enhancement
@@ -543,8 +543,8 @@ cast. A and B are indistinguishable.}
 \end{figure}
 
 % =====================================================================================================
-\section{SNR-Guided Attention: Second-Half Results}\label{sec:snr}
-The first half suggested that a loss-level SNR weight is too gentle to change the model. In the second half we moved
+\section{SNR-Guided Attention: Results}\label{sec:snr}
+The loss-level experiment suggested that a loss-level SNR weight is too gentle to change the model. We then moved
 the same signal into the network, where SNR-Aware~\cite{xu2022snr} showed it can matter.
 
 \emph{Gate design.} We reuse the noise estimate of Eq.~\eqref{eq:snr}, $n=|g-\mathcal{B}_5(g)|$, and convert the
