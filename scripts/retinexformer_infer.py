@@ -117,7 +117,13 @@ def main():
     p.add_argument("--alpha", type=float, default=2.0, help="SNR attention strength (used with --snr-attention)")
     args = p.parse_args()
 
-    device = torch.device(args.device) if args.device else pick_device()
+    # Accept both named devices ("cuda", "cpu") and bare GPU indices ("0", "1").
+    if not args.device:
+        device = pick_device()
+    elif args.device.isdigit():
+        device = torch.device("cuda", int(args.device))
+    else:
+        device = torch.device(args.device)
     model, factor, n_params = build_model(args.opt, args.weights, device, args.snr_attention)
 
     out_dir = Path(args.output)
