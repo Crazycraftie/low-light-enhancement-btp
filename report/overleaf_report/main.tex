@@ -1,5 +1,5 @@
 \documentclass[journal]{IEEEtran}
-% Midsem B.Tech Project report. Build: tectonic main.tex  (or upload report/ to Overleaf, pdfLaTeX/XeLaTeX)
+% B.Tech Project research report. Build: tectonic main.tex  (or upload report/ to Overleaf, pdfLaTeX/XeLaTeX)
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -16,18 +16,17 @@
 \begin{document}
 
 \title{Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation\\
-\large Mid-Semester B.Tech Project Report}
+\large B.Tech Project Research Report}
 
-\author{\missing{Student name}, \missing{Roll number}\\
-Supervisor: \missing{Supervisor name and title}\\
-Department of Electrical Engineering, Indian Institute of Technology Patna\\
-\missing{Date}}
+\author{Dhirendra Pratap Singh (2301EE49)\\
+Supervisor: Dr.~Rajib Kumar Jha\\
+Department of Electrical Engineering, Indian Institute of Technology Patna}
 
 \maketitle
 
 \begin{abstract}
 Photographs taken in dim light are dark, noisy and colour-shifted, and simply brightening them amplifies the noise.
-This report presents the first half of a project on transformer-based low-light image enhancement. We reproduce
+This report presents a project on transformer-based low-light image enhancement. We reproduce
 Retinexformer, a one-stage Retinex-based transformer, together with classical, zero-shot, transformer and diffusion
 baselines, and evaluate all of them under a single protocol: fidelity (PSNR, SSIM), perceptual distance (LPIPS),
 no-reference quality (NIQE), quality in the darkest image regions, efficiency on one GPU, and usefulness for a
@@ -38,7 +37,10 @@ worth 4--8.5~dB, that 91 of the 100 LOL-v2-real test images also appear in the L
 enhancer improves zero-shot detection on ExDark (mAP50 0.662 on raw images vs.\ at most 0.603 after enhancement).
 Finally, we test a noise-aware, SNR-weighted training loss in a controlled fine-tuning experiment. It yields a
 consistent but very small gain in dark regions (13 of 15 test images, +0.02~dB on average) and no measurable gain
-otherwise. We discuss why, and plan the second half of the project accordingly.
+otherwise. The attention-guided experiment, which moves SNR awareness into the transformer's attention, was completed and
+also produced a negative result: in a matched from-scratch comparison the ungated control beat the guided model by
+0.38~dB on a held-out test set, with no significant gain in dark regions. We discuss why neither use of SNR helps this
+model.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -108,7 +110,7 @@ protocol that includes task-based and region-specific metrics. (iv) Diffusion mo
 quality, and their reported numbers are not always obtained under the same protocol as other methods.
 
 \subsection{Contributions and Organization}
-The work completed in the first half of the project is:
+The contributions of the project are:
 \begin{itemize}
 \item A reproduction of Retinexformer and eight baselines---classical, zero-shot, transformer and diffusion---scored by
 one script on three paired and three unpaired test sets, with every number matched against the original papers.
@@ -117,10 +119,12 @@ one script on three paired and three unpaired test sets, with every number match
 \item A detection study on ExDark showing that no enhancer improves a COCO-pretrained YOLOv8m.
 \item A noise-aware, SNR-weighted loss and a controlled fine-tuning experiment (control vs.\ SNR loss vs.\ FFT loss vs.\
 both), evaluated globally and in the darkest image regions.
+\item A matched, from-scratch test of SNR-guided attention inside the transformer, which failed to beat its ungated
+control on validation or held-out test data.
 \end{itemize}
 Section~\ref{sec:background} gives background, Section~\ref{sec:method} the methods, Section~\ref{sec:setup} the
 experimental setup and Section~\ref{sec:results} the results. Section~\ref{sec:discussion} discusses limitations,
-Section~\ref{sec:plan} the plan for the second half, and Section~\ref{sec:conclusion} concludes.
+Section~\ref{sec:snr} the SNR-attention results, and Section~\ref{sec:conclusion} concludes.
 
 % =====================================================================================================
 \section{Background}\label{sec:background}
@@ -218,7 +222,7 @@ exactly one. The SNR-weighted loss between output $\hat{Y}$ and ground truth $Y$
 \end{equation}
 
 \emph{Two design decisions.} Both were made after measuring the SNR maps of LOL-v1 training images
-(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail; with min--max normalization, as initially planned,
+(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail; with min--max normalization, our initial choice,
 93\% of the pixels of the example image receive a weight above 1.9, so the ``weighted'' loss would be nearly twice the
 $\ell_1$ loss everywhere. That is a disguised doubling of the learning rate, not a re-weighting, and it would confound
 the comparison with the control. Rank normalization spreads the weights evenly. Second, dividing by the mean keeps
@@ -472,17 +476,25 @@ the SNR loss on DICM, and detection is unchanged (0.626 vs.\ 0.627 mAP50).
 % =====================================================================================================
 \begin{table}[t]
 \centering
-\caption{Plan for the second half of the semester}
-\label{tab:plan}
-\begin{tabular}{p{0.9cm} p{6.6cm}}
+\caption{SNR-guided attention on LOL-v2-syn. Top: mean best validation PSNR over three seeds, 10k iterations from
+scratch; $\alpha=0$ is the ungated control. Bottom: matched 150k from-scratch runs (seed 42), same data and schedule,
+and one evaluation on the held-out 100-image test set.}
+\label{tab:snr}
+\begin{tabular}{l c c}
 \toprule
-Weeks & Work \\
+Sweep (10k) & \multicolumn{2}{c}{Mean val PSNR (dB)} \\
+\cmidrule{2-3}
+$\alpha=0$ (control) & \multicolumn{2}{c}{23.7666} \\
+$\alpha=2$           & \multicolumn{2}{c}{23.5707} \\
+$\alpha=4$           & \multicolumn{2}{c}{23.7365} \\
+$\alpha=8$           & \multicolumn{2}{c}{23.6062} \\
 \midrule
-1--2 & SNR map as an additional guide in IG-MSA (e.g. scaling $V$ or masking attention by SNR); separate noise from edges (e.g. noise estimate on flat regions only) \\
-3--4 & Sweep $\alpha$ and the weighting curve; 3 seeds per setting to measure run-to-run variance \\
-5--6 & Train the best variant from scratch; evaluate on larger paired test sets (LOL-v2-syn, and SID/SMID if compute allows) \\
-7 & Detection: fine-tune YOLOv8 on enhanced ExDark training images vs.\ raw; joint enhancement--detection objective if time allows \\
-8 & Final report, code release \\
+Final (150k)         & control   & guided ($\alpha=4$) \\
+\cmidrule{2-3}
+Val PSNR (dB)        & 24.8936   & 24.7072 \\
+Test PSNR (dB)       & 25.2136   & 24.8320 \\
+Dark PSNR (dB)       & 26.3229   & 26.1988 \\
+Test SSIM            & 0.9292    & 0.9285 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -499,6 +511,14 @@ puts high weights on edges as well as on noisy flat regions. (iii) Retinexformer
 network where the image is dark. (iv) Fine-tuning a converged model for 10k iterations at a small learning rate leaves
 little room for any loss to change its behaviour.
 
+\emph{Why the in-network gate also failed.} (i) Retinexformer already models illumination: the light-up features fed to
+every IGAB tell the network where the image is dark, so a second map derived from the input adds little new information.
+(ii) Multiplying the value features only rescales what attention already sees; it gives the network no new information
+about how to remove noise, and the corrupted values themselves remain available to it. (iii) The estimate
+$|I-\mathcal{B}_5(I)|$ responds to edges and texture as well as to noise, so the gate emphasizes structure worth
+keeping rather than isolating noise worth suppressing. (iv) The sweep had already answered the question: the ungated
+control had the highest mean validation PSNR, so there was no evidence of a benefit even before the 150k run.
+
 \emph{Why fine-tuning lowered LOL-v1 PSNR.} The training loss improved in all runs while LOL-v1 test PSNR fell and
 LOL-v2-syn rose. With 485 training images, extra training moves the model away from a released checkpoint that appears
 unusually good---consistent with our re-training (23.10~dB) and the independent 23.45~dB report. Because A and B are
@@ -508,7 +528,11 @@ affected equally, the A--B comparison remains fair.
 meaningful; one random seed was used per run; training was limited by the free GPU quota (about 30 hours per week);
 the detection study uses one detector without fine-tuning and ExDark labels are imperfect; GSAD was run on 200 ExDark
 images only; SNR-Aware could only be evaluated on released images. Fig.~\ref{fig:fail} shows shared failures: text on a
-bottle in image 493 is lost by every method, including ours.
+bottle in image 493 is lost by every method, including ours. For the attention experiment, only one seed was run at the full
+150k-iteration length, so the final comparison cannot separate the gate's effect from run-to-run variance; the 10k
+sweep used three seeds but short runs need not predict long-run behaviour, and the held-out test set was evaluated only
+once. Detector fine-tuning on enhanced ExDark training images was dropped for lack of GPU quota, so whether enhancement
+helps a detector trained on enhanced data remains unanswered.
 
 \begin{figure}[t]
 \centering
@@ -519,9 +543,35 @@ cast. A and B are indistinguishable.}
 \end{figure}
 
 % =====================================================================================================
-\section{Plan for the Remaining Semester}\label{sec:plan}
-Table~\ref{tab:plan} lists the planned work. The main change of direction is to move noise awareness from the loss into
-the network, where SNR-Aware showed it can matter, and to measure effects on test sets large enough to resolve them.
+\section{SNR-Guided Attention: Results}\label{sec:snr}
+The loss-level experiment suggested that a loss-level SNR weight is too gentle to change the model. We then moved
+the same signal into the network, where SNR-Aware~\cite{xu2022snr} showed it can matter.
+
+\emph{Gate design.} We reuse the noise estimate of Eq.~\eqref{eq:snr}, $n=|g-\mathcal{B}_5(g)|$, and convert the
+resulting SNR into its rank $r\in[0,1]$ within each image. A gate $h_p=1+\alpha(1-r_p)$, normalized to mean one over
+the image, multiplies the value features of IG-MSA in every IGT block,
+$V'_p = V_p\odot F_{lu,p}\odot h_p$ (cf.\ Eq.~\eqref{eq:igmsa}), with $h_p$ broadcast over channels. The gate has no
+trainable parameters: for $\alpha=0$, $h_p=1$ everywhere and the model is identical to the ungated Retinexformer.
+
+\emph{Sweep protocol.} For each $\alpha\in\{0,2,4,8\}$ we trained from scratch on LOL-v2-syn with an $\ell_1$ loss for
+10k iterations with three seeds (42, 43, 44), selecting the checkpoint with the best validation PSNR. The test set was
+not used. The means in Table~\ref{tab:snr} show that the ungated control ($\alpha=0$, 23.7666~dB) is best; among the
+guided variants $\alpha=4$ is best (23.7365~dB) and was chosen for the final run. This choice was fixed before the
+final training and before any test evaluation.
+
+\emph{Matched final training.} The control and the guided ($\alpha=4$) model were then trained from scratch for 150k
+iterations with seed 42, on the same data with the same schedule and loss; the gate is the only difference. Best
+validation PSNR was 24.8936~dB for the control and 24.7072~dB for the guided model (Table~\ref{tab:snr}). The
+held-out 100-image LOL-v2-syn test set was evaluated once, after the $\alpha$ selection: control 25.2136~dB PSNR,
+0.9292 SSIM, 0.0560 LPIPS, and 26.3229~dB PSNR / 0.8894 SSIM on the darkest 30\% of pixels; guided 24.8320~dB,
+0.9285, 0.0558, and 26.1988~dB / 0.8884.
+
+\emph{Result: no gain.} The control beats the guided model by 0.3816~dB on the full test set and by 0.1241~dB in the
+dark regions. Paired per-image statistics agree: the guided model wins on 46 of 100 full images (two-sided sign test
+$p=0.4841$) and on 53 of the darkest 30\% ($p=0.6173$); the mean guided-minus-control difference is $-0.3816$~dB
+(paired $t$-test $p=0.2324$) globally and $-0.1241$~dB ($p=0.7221$) in the dark. The only metric that favours the
+guided model is LPIPS, by 0.0002 (0.0558 vs.\ 0.0560), which is negligible and not evidence of a perceptual benefit.
+For reference, the released Retinexformer scores 25.6693~dB on this set, so our re-trained control is close to it.
 
 
 % =====================================================================================================
@@ -530,8 +580,11 @@ We reproduced Retinexformer and eight baselines under one evaluation protocol an
 released models, while re-training from scratch fell about 2~dB short. The common protocol revealed that a diffusion
 baseline's published numbers depend on a ground-truth brightness correction, that LOL-v2-real largely overlaps LOL-v1
 training data, and that no enhancer helps a COCO-pretrained detector on ExDark. A noise-aware, SNR-weighted loss,
-tested against a strict control, produced a consistent but negligible improvement in the darkest regions. The second
-half of the project will move noise awareness into the attention mechanism and evaluate on larger test sets.
+tested against a strict control, produced a consistent but negligible improvement in the darkest regions. Moving SNR
+awareness into the attention mechanism was also tested in a matched from-scratch experiment and again produced no gain:
+the ungated control was better by 0.38~dB on the held-out test set, with no significant benefit in dark regions. We
+therefore do not claim an improvement from SNR awareness in this model; the two careful negative results and the
+protocol findings are the outcome of the project.
 
 \FloatBarrier
 \bibliographystyle{IEEEtran}
