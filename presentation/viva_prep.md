@@ -560,23 +560,66 @@ GSAD 2.4–4.9 s per image.
 - *What would you do differently?* Several seeds, larger test sets, and a noise estimate that ignores edges.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 19 — Plan for the second half
+## Slide 19 — What we did in the second half
 
-**On the slide:** five time blocks.
+**On the slide:** five blocks — three *Done*, one *Dropped*, one *Final*.
 
 **Explain each block:**
-- *Weeks 1–2:* put SNR guidance inside IG-MSA (like SNR-Aware does in attention) + a noise estimate that ignores edges.
-- *Weeks 3–4:* sweep α (weight strength) and weighting scheme, 3 seeds each → measure variance.
-- *Weeks 5–6:* train the best variant from scratch; evaluate on larger test sets.
-- *Week 7:* fine-tune YOLOv8 on enhanced vs raw ExDark → does enhancement help when the detector can adapt?
-- *Week 8:* final report and code release.
+- *Done:* put SNR guidance inside IG-MSA as a parameter-free value gate; no learnable parameters.
+- *Done:* swept α = 0/2/4/8 with three seeds at 10k iterations; the ungated control had the best validation PSNR.
+- *Done:* trained the selected variant and a matched control from scratch for 150k iterations and evaluated both once on
+  the held-out 100-image LOL-v2-syn test set.
+- *Dropped:* YOLOv8 fine-tuning on enhanced ExDark, because the Kaggle GPU quota ran out — it was not done, so no result is claimed.
+- *Final:* report, slides and code release.
 
 **Questions:**
 - *Why should SNR inside attention work better than in the loss?* The loss only changes how errors are counted; guidance inside
-  attention changes which information each region uses — that is where SNR-Aware gained.
+  attention changes which information each region uses. That was the hypothesis; the experiment showed it still did not help,
+  and the next slide gives the numbers and the explanation.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 20 — Conclusions
+## Slide 20 — SNR-guided attention: second-half result (post-midsem)
+
+**On the slide:** three result tables plus one takeaway line. (1) Sweep at 10k iterations from scratch, mean of 3 seeds on
+LOL-v2-syn: control **23.7666**, α2 **23.5707**, α4 **23.7365**, α8 **23.6062** dB best validation PSNR — control is best;
+α4 is the best *guided* variant, so it was selected for final training. (2) Matched final runs, 150k from scratch, seed 42:
+control **24.8936** vs guided α4 **24.7072** dB. (3) Held-out 100-image LOL-v2-syn test, used once: control 25.2136 / 0.9292 /
+0.0560 / dark-30% 26.3229 vs guided 24.8320 / 0.9285 / 0.0558 / dark-30% 26.1988 (PSNR / SSIM / LPIPS / dark PSNR).
+Bottom line: paired sign test 46/100 full and 53/100 dark wins for the guided model (p = 0.4841, 0.6173) → **negative result**.
+
+**Say it (about 1 min):** "I moved the SNR idea from the loss into the network, as a parameter-free gate on the values inside
+Retinexformer's attention. A 3-seed sweep and a matched 150k from-scratch run both put the unguided control ahead, and on the held-out
+test the control is 0.38 dB better overall and 0.12 dB better in dark regions. The guided model wins only 46 of 100 images overall.
+This is an honest negative result: the gate as designed does not improve fidelity."
+
+**Questions:**
+- *What does the SNR gate do, and why is it parameter-free?* The SNR map is computed from the input (rank-normalised, mean one)
+  and multiplied element-wise into the attention **values**, alongside the existing illumination features: `v = v · illu · gate`.
+  Nothing is learned — no new weights, no extra capacity — so any difference must come from the SNR information itself.
+- *Why is α = 0 bit-identical to the original block?* With α = 0 the weight map is all ones, so the multiplication by the gate
+  changes nothing. I used this as a check: the guided block loads the original weights exactly, and α = 0 reproduces the original
+  IG-MSA output bit for bit. It is a real control, not a near-zero setting.
+- *Why did the control win on validation?* The blur-difference SNR estimate also fires on edges and texture (not just noise),
+  and Retinexformer already has illumination-guided attention, so the extra value scaling added no useful information for
+  fidelity. Adding the gate can even disturb a block that was already well tuned.
+- *How was the final comparison matched, and why was the test set used only once?* Control and guided α4 were both trained
+  **from scratch for 150k iterations with the same seed (42)**, same data, config and schedule; only the gate differs. The
+  checkpoint was selected by **validation PSNR**; the separate 100-image test set was evaluated only once, after both runs
+  were finished, so it could not influence model selection.
+- *What does the sign test say?* Guided wins 46/100 images overall (two-sided p = 0.4841) and 53/100 in the darkest 30%
+  (p = 0.6173). Neither is distinguishable from a coin flip. The mean paired difference is −0.3816 dB overall and −0.1241 dB
+  in dark regions — the direction is negative, not just statistically inconclusive.
+- *Why is this still a valid result?* It is a pre-planned, matched comparison with a seeding sweep, a no-op (α = 0) control
+  and a single held-out evaluation. A reproducible negative result is a real finding: it shows this particular gate does not
+  help fidelity and redirects the work (e.g. fix the noise estimate, try a different insertion point) instead of cherry-picking
+  a win.
+- *Why was detector fine-tuning dropped, and what would you do with more GPU time?* Fine-tuning YOLOv8 on enhanced ExDark was
+  dropped because of the Kaggle GPU quota — I do not claim it was run. With more GPU time I would (i) fix the SNR estimate so it
+  ignores edges, (ii) try the gate at other points / with learned strength and more seeds, and (iii) then fine-tune YOLOv8 on raw
+  versus enhanced ExDark training images to test whether enhancement helps once the detector adapts.
+
+---------------------------------------------------------------------------------------------------------------------
+## Slide 21 — Conclusions
 
 **Explain each bullet:**
 - Reproduced Retinexformer (25.15 dB) + 8 baselines under one protocol → a trustworthy base.

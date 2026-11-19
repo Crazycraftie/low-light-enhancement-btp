@@ -130,3 +130,25 @@ planned settings as results.
   was downloaded. Do not quote any post-midsem test numbers yet.
 - Compressed continuation: `notebooks/final_6h.ipynb` resumes both runs on one T4 (~5 h), then evaluates
   the 100-image LOL-v2-syn test set once with `best.pth`. ExDark detector fine-tuning is dropped for quota.
+
+### 2026-11-19 — final post-midsem results (imported from `final_results.zip`)
+
+Both 150k runs finished (control exit 0; guided needed one more resume in `notebooks/finish_from_v4.ipynb`).
+Final best validation PSNR: control 24.8936, guided (alpha 4) 24.7072. The held-out 100-image LOL-v2-syn
+test set was evaluated once, after alpha was fixed:
+
+| | PSNR | SSIM | LPIPS | dark-30% PSNR | dark SSIM |
+|---|---|---|---|---|---|
+| control | **25.2136** | **0.9292** | 0.0560 | **26.3229** | **0.8894** |
+| SNR-guided alpha 4 | 24.8320 | 0.9285 | 0.0558 | 26.1988 | 0.8884 |
+
+Paired per-image check: guided wins 46/100 whole images (sign test p=0.4841) and 53/100 dark-30%
+cases (p=0.6173); mean difference guided-control is -0.3816 dB whole image and -0.1241 dB dark.
+So the in-network SNR gate is **worse** on average and gives no significant benefit anywhere.
+LPIPS is 0.0002 lower for guided — negligible and not a meaningful quality gain. For context, the
+released Retinexformer scores 25.6693 dB on this test set, so the re-trained control is close.
+
+Imported files: `results/results.csv`, `results/dark_region.csv`, four `results/per_image*` CSVs, the two
+run configs/logs in `runs/post_midsem/final/`, and `results/snr_attention.csv` (all 12 sweep seeds plus
+both final validation PSNRs). `notebooks/finish_from_v4.ipynb` contains the last resume + evaluation.
+ExDark detector fine-tuning was dropped for GPU quota; no such results should be claimed.

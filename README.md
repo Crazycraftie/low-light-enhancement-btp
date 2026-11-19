@@ -72,29 +72,31 @@ force CPU there. NIQE needs float64 → CPU. Speeds were measured only on a Kagg
 | ExDark → YOLO | `scripts/exdark_to_yolo.py` → `scripts/check_labels.py` → `scripts/build_yolo_sets.py` → `scripts/yolo_eval.py` |
 | Speed on one GPU + GSAD on ExDark-200 | `notebooks/day2_speed_gsad_exdark.ipynb` |
 | SNR-loss experiment (runs A–D) | `scripts/losses.py`, `scripts/finetune.py`, `notebooks/day3_finetune.ipynb` |
-| Post-midsem SNR-attention and detector experiments | `notebooks/post_midsem_experiments.ipynb`, `notebooks/post_midsem_detection.ipynb` |
+| Post-midsem SNR-attention experiments | `notebooks/post_midsem_experiments.ipynb`, `notebooks/final_6h.ipynb`, `notebooks/finish_from_v4.ipynb` |
 | Dark-region metric | `python scripts/eval_dark_regions.py --pred <dir> --gt <dir> --low <dir> --method <name> --dataset LOLv1` |
 | Tables / plots / grids | `scripts/make_tables.py`, `scripts/plot_results.py`, `scripts/make_grid.py`, `scripts/find_failures.py` |
 
 Every script has a docstring with a usage example. All settings, problems and fixes are logged in
 [`notes/experiment_log.md`](notes/experiment_log.md); detection analysis in [`notes/detection_findings.md`](notes/detection_findings.md).
 
-## Post-midsem experiments
+## Post-midsem experiments — completed (negative result)
 
-The remaining-semester plan moves noise guidance from the loss into Retinexformer's IG-MSA attention and tests
-whether detector fine-tuning on enhanced images helps. `scripts/snr_guidance.py` scales attention value features
-with a rank-normalized, mean-one SNR gate; the gate adds no parameters and alpha 0 matches the unmodified model.
+`scripts/snr_guidance.py` moves noise guidance from the loss into Retinexformer's IG-MSA attention: a rank-normalized,
+mean-one SNR gate scales the attention value features. It adds no parameters and alpha 0 is bit-identical to the
+original block.
 
-- [`notebooks/post_midsem_experiments.ipynb`](notebooks/post_midsem_experiments.ipynb): LOL-v2-syn alpha sweep
-  (2/4/8, three seeds, matched no-gate control), then matched from-scratch training and held-out test evaluation.
-  Selection uses a validation split from the training set; do not choose alpha using the test results.
-- [`notebooks/post_midsem_detection.ipynb`](notebooks/post_midsem_detection.ipynb): fine-tune YOLOv8m on raw
-  versus SNR-enhanced ExDark training images, then evaluate both detectors on the same held-out test images.
-- `scripts/finetune.py` supports scratch training, validation, and resumable checkpoints;
+- `notebooks/post_midsem_experiments.ipynb`: LOL-v2-syn sweep (alpha 0/2/4/8, three seeds, 10k iterations).
+  Mean validation PSNR: control 23.7666, alpha 2 23.5707, alpha 4 23.7365, alpha 8 23.6062 — the **control won**.
+- `notebooks/final_6h.ipynb` and `notebooks/finish_from_v4.ipynb`: matched 150k from-scratch runs (seed 42) and the
+  held-out 100-image test evaluation. Results (`results/results.csv`, `results/dark_region.csv`,
+  `results/snr_attention.csv`): control 25.2136 dB / 26.3229 dB dark-30% vs guided alpha 4 24.8320 / 26.1988.
+  The guided model is 0.3816 dB worse overall and 0.1241 dB worse in dark regions; no significant paired benefit
+  (46/100 and 53/100 wins, sign-test p=0.4841 / 0.6173).
+- `scripts/finetune.py` supports scratch training, validation, resumable checkpoints;
   `scripts/retinexformer_infer.py --snr-attention --alpha <value>` runs the guided architecture.
 
-These are GPU experiments for Kaggle, not completed result claims. Record the produced checkpoints and CSVs before
-updating the report or slides.
+Detector fine-tuning on enhanced ExDark was **dropped** for lack of GPU quota, so no such result is claimed.
+Full interpretation is in `notes/contribution_findings.md` and `notes/experiment_log.md`.
 
 ## Repo layout
 ```

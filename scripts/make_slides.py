@@ -52,8 +52,25 @@ def v(method, dataset, metric, nd):
     return f"{float(x):.{nd}f}" if x not in ("", None) else "–"
 
 
-def per_image(folder, method, col):
-    return {r["image"]: float(r[col]) for r in csv.DictReader(open(R / folder / f"{method}_LOLv1.csv"))}
+def per_image(folder, method, col, dataset="LOLv1"):
+    return {r["image"]: float(r[col]) for r in csv.DictReader(open(R / folder / f"{method}_{dataset}.csv"))}
+
+
+# Post-midsem SNR-guided-attention runs: sweep / final validation PSNRs (all traceable to this CSV).
+ATTN = list(csv.DictReader(open(R / "snr_attention.csv")))
+
+
+def attn_val(stage, alpha, seed=None):
+    """Best validation PSNR (dB) from snr_attention.csv; mean over seeds when seed=None."""
+    xs = [float(r["best_val_psnr"]) for r in ATTN
+          if r["stage"] == stage and r["alpha"] == alpha and (seed is None or r["seed"] == seed)]
+    return f"{sum(xs) / len(xs):.4f}" if xs else "–"
+
+
+def sign_p(wins, n):
+    """Two-sided sign-test p-value under the null of a 50/50 coin flip."""
+    k = max(wins, n - wins)
+    return min(1.0, 2 * sum(comb(n, i) for i in range(k, n + 1)) / 2 ** n)
 
 
 # ------------------------------------------------------------------ slide-only images from real outputs
@@ -633,25 +650,74 @@ Q: What would you do differently? A: Several seeds, larger test sets, and a nois
                 "Detector used as-is (not fine-tuned)", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
             x=8.1, y=1.7, w=5.0, size=16)
 
-    # 18 --------------------------------------------------------------- plan
-    s = slide("Plan for the second half", """
-SAY: The evidence suggests moving the SNR idea from the loss into the network itself, as SNR-Aware does inside attention, and fixing the
-noise estimate so it ignores edges. I will sweep the weighting strength with several seeds to measure variance, train the best version
-from scratch, evaluate on larger test sets, and finally fine-tune the detector on enhanced images to see whether enhancement can help
-when the detector adapts to it.
+    # 18 --------------------------------------------------------------- second-half work: done vs dropped
+    s = slide("What we did in the second half", """
+SAY: The second-half plan has now been carried out. I put the SNR map inside attention, swept the gate strength with three seeds,
+trained the selected variant and a matched control from scratch for 150k iterations, and evaluated both once on the held-out
+LOL-v2-syn test set. Only the detector fine-tuning step was dropped because the GPU quota ran out; the next slide gives the numbers.
 
 Q: Why should SNR inside attention work better than in the loss? A: The loss only changes how errors are counted; guidance inside
-attention changes what information each region uses, which is where SNR-Aware gained.""", "Plan")
-    plan = [("Weeks 1–2", "SNR guidance inside IG-MSA; noise estimate that ignores edges"),
-            ("Weeks 3–4", "Sweep α and weighting; 3 seeds per setting"),
-            ("Weeks 5–6", "Train best variant from scratch; larger test sets"),
-            ("Week 7", "Fine-tune YOLOv8 on enhanced vs raw ExDark"), ("Week 8", "Final report and code release")]
+attention changes what information each region uses. In our experiment it still did not help, and the next slide explains why.""", "Second half")
+    plan = [("Done", "SNR guidance inside IG-MSA (parameter-free value gate)"),
+            ("Done", "Swept α = 0/2/4/8 with 3 seeds, 10k iterations"),
+            ("Done", "Matched 150k from-scratch runs; 100-image held-out test"),
+            ("Dropped", "YOLOv8 fine-tuning on enhanced ExDark — GPU quota"),
+            ("Final", "Report, slides and code release")]
     for i, (a, b) in enumerate(plan):
         y = 1.65 + i * 1.0
         box = s.shapes.add_shape(1, Inches(0.6), Inches(y), Inches(2.0), Inches(0.75))
         box.fill.solid(); box.fill.fore_color.rgb = BLUE; box.line.fill.background()
         text(s, 0.6, y, 2.0, 0.75, a, 16, RGBColor(0xFF, 0xFF, 0xFF), True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
         text(s, 2.9, y, 10, 0.75, b, 18, INK, anchor=MSO_ANCHOR.MIDDLE)
+
+    # 18b ------------------------------------------------------------- post-midsem SNR-guided attention
+    # All numbers below are read from CSVs: sweep / final from snr_attention.csv, test from results.csv
+    # and dark_region.csv, and the paired sign test from the per-image CSVs.
+    sweep = [["Sweep: 10k iters, 3 seeds (LOL-v2-syn)", "Best val PSNR (dB)"],
+             ["Control (no gate)", attn_val("sweep", "0")],
+             ["α = 2", attn_val("sweep", "2")],
+             ["α = 4 (selected guided)", attn_val("sweep", "4")],
+             ["α = 8", attn_val("sweep", "8")]]
+    final = [["Final: 150k from scratch, seed 42", "Best val PSNR (dB)"],
+             ["Control", attn_val("final", "0", "42")],
+             ["Guided α = 4", attn_val("final", "4", "42")]]
+    test = [["Held-out test (LOL-v2-syn, 100)", "PSNR ↑", "SSIM ↑", "LPIPS ↓", "Dark-30% PSNR ↑"],
+            ["Control", v("PostMidsem-control", "LOLv2-syn", "psnr", 4), v("PostMidsem-control", "LOLv2-syn", "ssim", 4),
+             v("PostMidsem-control", "LOLv2-syn", "lpips", 4), f"{float(DARK[('PostMidsem-control','LOLv2-syn')]['dark_psnr']):.4f}"],
+            ["Guided α = 4", v("PostMidsem-SNR-a4", "LOLv2-syn", "psnr", 4), v("PostMidsem-SNR-a4", "LOLv2-syn", "ssim", 4),
+             v("PostMidsem-SNR-a4", "LOLv2-syn", "lpips", 4), f"{float(DARK[('PostMidsem-SNR-a4','LOLv2-syn')]['dark_psnr']):.4f}"]]
+    c_full = per_image("per_image", "PostMidsem-control", "psnr", "LOLv2-syn")
+    g_full = per_image("per_image", "PostMidsem-SNR-a4", "psnr", "LOLv2-syn")
+    c_dark = per_image("per_image_dark", "PostMidsem-control", "dark_psnr", "LOLv2-syn")
+    g_dark = per_image("per_image_dark", "PostMidsem-SNR-a4", "dark_psnr", "LOLv2-syn")
+    w_full, w_dark = sum(g_full[i] > c_full[i] for i in c_full), sum(g_dark[i] > c_dark[i] for i in c_dark)
+    p_full, p_dark = sign_p(w_full, len(c_full)), sign_p(w_dark, len(c_dark))
+    s = slide("SNR-guided attention: second-half result", f"""
+SAY: In the second half I moved the SNR idea from the loss into the network: a parameter-free gate that scales IG-MSA value features
+with a rank-normalised, mean-one SNR map computed from |input - blur(input)|; alpha = 0 is bit-identical to the original block.
+First, a 10k-iteration sweep from scratch with 3 seeds: control {sweep[1][1]} dB, alpha2 {sweep[2][1]}, alpha4 {sweep[3][1]},
+alpha8 {sweep[4][1]} - control is best, and alpha4 was picked as the best guided variant. I then trained control and guided alpha4
+for 150k iterations from scratch with seed 42: {final[1][1]} vs {final[2][1]} dB best validation. On the held-out 100-image test the
+control still wins: {test[1][1]} vs {test[2][1]} dB PSNR and {test[1][4]} vs {test[2][4]} dB dark-30% PSNR. The paired sign test gives
+{w_full}/100 full and {w_dark}/100 dark wins for the guided model (p = {p_full:.4f} and {p_dark:.4f}). This is a negative result.
+
+Q: What does the gate do and why is it parameter-free? A: It uses the SNR map from the input to rescale the value features inside
+IG-MSA; there are no extra learned weights in the gate, only the existing attention parameters.
+Q: Why did the control win? A: The map also fires on edges, and Retinexformer already uses illumination to guide attention, so the
+extra scaling added no useful information for fidelity.""", "Post-midsem")
+    table(s, sweep, 0.6, 1.5, 6.0, [3.7, 2.3], size=14, row_h=0.46,
+          bold_cells=best_cells(sweep, [1], [True]))
+    table(s, final, 6.85, 1.5, 5.85, [3.45, 2.4], size=14, row_h=0.5,
+          bold_cells=best_cells(final, [1], [True]))
+    text(s, 6.85, 3.05, 5.85, 0.65, "α = 4 = best guided variant; the control still wins.", 15, BLUE, True)
+    table(s, test, 0.6, 4.15, 12.1, [3.4, 1.7, 1.7, 1.7, 3.6], size=13, row_h=0.5,
+          bold_cells=best_cells(test, [1, 2, 3, 4], [True, True, False, True]))
+    text(s, 0.6, 5.8, 12.1, 0.45,
+         f"Paired sign test (guided vs control): {w_full}/100 full (p = {p_full:.4f}), {w_dark}/100 dark (p = {p_dark:.4f}) → negative result",
+         15, INK, True)
+    text(s, 0.6, 6.3, 12.1, 0.45,
+         "Parameter-free gate: rank-normalised, mean-one SNR map scales IG-MSA values; α = 0 is bit-identical to the original block.",
+         14, INK2)
 
     # 19 --------------------------------------------------------------- conclusion
     s = slide("Conclusions", f"""

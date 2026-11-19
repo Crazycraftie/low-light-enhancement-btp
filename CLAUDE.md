@@ -110,7 +110,7 @@ quality-vs-speed plot, detection examples. Clean README.
 
 Fallback order if behind: drop diffusion → second loss variant → full-size ExDark. Everything else is core.
 
-## Current status (2026-11-15) — midsem deliverables complete; post-midsem GPU runs pending
+## Current status (2026-11-19) — all experiments complete; post-midsem result imported
 - Report: `report/report.pdf` (IEEE two-column, 9 pp; source `report/main.tex`, `refs.bib` = 28 refs verified via
   Crossref/arXiv/official pages; tables from `scripts/make_latex_tables.py`; Overleaf zip `report/overleaf_report.zip`).
   Build locally: `~/Library/TinyTeX/bin/universal-darwin/pdflatex` (+ bibtex) in `report/`.
@@ -123,10 +123,12 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
   every enhancer; SNR loss B vs A: +0.01 dB overall, dark regions 13/15 wins (p=0.004) but +0.01–0.05 dB → negligible.
 - Verified paper-reported numbers: `results/reported_in_papers.csv` (Retinexformer, SNR-Aware, LLFormer exact; GSAD w/ GT trick).
-- Remaining-semester decisions are recorded in `report/main.tex` and `notes/contribution_findings.md`: move SNR guidance into
-  IG-MSA, sweep alpha 2/4/8 with three seeds, train the selected variant and control from scratch on LOL-v2-syn, then
-  fine-tune YOLOv8 on raw versus enhanced ExDark training data.
-- Implemented the parameter-free value-scaling gate in `scripts/snr_guidance.py`, added scratch/validation/resume support
-  to `scripts/finetune.py`, and prepared Kaggle workflows in `notebooks/post_midsem_experiments.ipynb` and
-  `notebooks/post_midsem_detection.ipynb`. Smoke tests pass locally; full GPU experiments have not run yet.
-- Do not update final report/slides with new claims until the Kaggle runs finish and their outputs are imported and checked.
+- Post-midsem SNR-guided attention is **finished**: parameter-free gate in `scripts/snr_guidance.py`, 12-run sweep
+  (control 23.7666 / alpha 4 23.7365 mean val PSNR), matched 150k from-scratch runs, held-out test evaluated once.
+  Control beats guided by 0.3816 dB overall (25.2136 vs 24.8320) and 0.1241 dB in dark regions (26.3229 vs 26.1988);
+  guided wins 46/100 and 53/100 (sign test p=0.4841 / 0.6173). Final negative result; all numbers in
+  `results/snr_attention.csv`, `results/results.csv`, `results/dark_region.csv` and per-image CSVs.
+- Imported outputs: `notebooks/final_6h.ipynb` (resume from early stop), `notebooks/finish_from_v4.ipynb` (last resume
+  + test eval), `runs/post_midsem/final/*` configs/logs. YOLOv8 detector fine-tuning on enhanced ExDark was dropped
+  for GPU quota — do not claim it was run.
+- Report/slides/viva must reflect the final negative result (see `notes/contribution_findings.md`).

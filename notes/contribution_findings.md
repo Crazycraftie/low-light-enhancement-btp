@@ -46,3 +46,26 @@ numbers: `results/tables.md` table 3. LOL-v1 has 15 test images, so whole-image 
 produces a consistent but practically negligible gain in dark regions (+0.01–0.05 dB) and no gain overall, in
 detection, or on unpaired sets. A negative result with a clear diagnosis is still a result — and the analysis above
 explains why and what would be more promising.
+
+## Second-half contribution: SNR guidance inside IG-MSA (also negative)
+
+We moved the SNR map from the loss into the network: `scripts/snr_guidance.py` scales IG-MSA value features
+by a rank-normalized, mean-one noise map obtained from `|input - blur(input)|`. It adds **no parameters** and
+alpha = 0 is bit-identical to the original block.
+
+- **Sweep** (LOL-v2-syn, 10k iters, from scratch, 3 seeds): mean best validation PSNR control 23.7666,
+  alpha 2 23.5707, alpha 4 23.7365, alpha 8 23.6062. The control already wins; alpha 4 is the best guided
+  variant and was selected for the final run (guided variants only) before touching the test set.
+- **Final matched runs** (150k iters from scratch, seed 42): best validation PSNR control 24.8936,
+  guided 24.7072. Same data, crops, LR schedule and seed; only the gate differs.
+- **Held-out test (100 images, evaluated once):** control 25.2136 dB / 0.9292 SSIM / 26.3229 dB dark-30%;
+  guided 24.8320 / 0.9285 / 26.1988. The guided model is **0.3816 dB worse** overall and **0.1241 dB worse**
+  in dark regions. Guided wins 46/100 images (sign test p=0.4841) and 53/100 dark cases (p=0.6173) — no
+  significant benefit; a few large losses pull its mean down. LPIPS differs by only 0.0002.
+
+**Honest interpretation.** Retinexformer's illumination estimator already encodes where an image is dark, so an
+extra multiplier on attention values supplies little new information; the residual-based map also responds to
+edges, not just noise. This mirrors the first-half finding: noise awareness as designed here does not help this
+architecture. With more compute the next step would be a *learned* noise-aware attention (extra input channel
+or predicted mask trained end-to-end), a flat-region-only noise estimator, and detector fine-tuning.
+**This negative result is the final answer to the proposed contribution.**

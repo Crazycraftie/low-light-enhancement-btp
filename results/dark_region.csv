@@ -10,3 +10,5 @@ Retinexformer (my training),LOLv1,0.3,15,23.9635,0.7610
 SCI,LOLv1,0.3,15,16.1294,0.4024
 SNR-Aware (released),LOLv1,0.3,15,24.9565,0.7788
 Zero-DCE,LOLv1,0.3,15,17.4155,0.4336
+PostMidsem-SNR-a4,LOLv2-syn,0.3,100,26.1988,0.8884
+PostMidsem-control,LOLv2-syn,0.3,100,26.3229,0.8894

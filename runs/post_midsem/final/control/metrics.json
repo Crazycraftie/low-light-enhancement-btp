@@ -1,0 +1,6 @@
+{
+  "best_val_psnr": 24.8935770330666,
+  "final_iter": 150000,
+  "snr_attention": false,
+  "alpha": 0.0
+}

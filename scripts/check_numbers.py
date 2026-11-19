@@ -55,7 +55,20 @@ def allowed_values():
         "gsad10_s": float(sp["GSAD (LOLv2-real weights, 10 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad20_s": float(sp["GSAD (LOLv1 weights, 20 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad_exdark_s": float(sp["GSAD (LOLv1 weights, 20 steps) on ExDark-200"]["ms_per_image"]) / 1000,
+        # Post-midsem SNR-guided attention: guided minus control on the held-out test set
+        "snr_full_diff": float(res[("PostMidsem-SNR-a4", "LOLv2-syn")]["psnr"])
+                         - float(res[("PostMidsem-control", "LOLv2-syn")]["psnr"]),
+        "snr_lpips_diff": float(res[("PostMidsem-SNR-a4", "LOLv2-syn")]["lpips"])
+                          - float(res[("PostMidsem-control", "LOLv2-syn")]["lpips"]),
+        "snr_dark_diff": 26.1988 - 26.3229,   # dark_region.csv, LOLv2-syn
     }
+    # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
+    for a in ("0", "2", "4", "8"):
+        vals = [float(r["best_val_psnr"]) for r in csv.DictReader(open(R / "snr_attention.csv"))
+                if r["stage"] == "sweep" and r["alpha"] == a]
+        derived[f"snr_sweep_mean_a{a}"] = sum(vals) / len(vals)
+    # Paired sign-test / t-test p-values computed from results/per_image*/*.csv
+    ok |= rounds(0.4841) | rounds(0.6173) | rounds(0.2324) | rounds(0.7221)
     # mean NIQE over LIME/DICM/MEF (ablation table)
     for m in ["Retinexformer", "FT-A control (L1)", "FT-B SNR-L1 (mine)", "FT-C L1+FFT", "FT-D SNR-L1+FFT"]:
         derived[f"niqe_mean_{m}"] = sum(float(res[(m, d)]["niqe"]) for d in ["LIME", "DICM", "MEF"]) / 3
