@@ -51,8 +51,10 @@ sys.path.insert(0, str(Path(_pre.parse_known_args()[0].repo).resolve()))
 from basicsr.models.archs.RetinexFormer_arch import RetinexFormer  # noqa: E402
 try:
     from .snr_guidance import enable_snr_guidance, guided_forward  # type: ignore
+    from .learned_noise import enable_learned_noise, guided_forward as learned_guided_forward  # type: ignore
 except ImportError:
     from snr_guidance import enable_snr_guidance, guided_forward  # noqa: E402
+    from learned_noise import enable_learned_noise, guided_forward as learned_guided_forward  # noqa: E402
 
 
 def pick_device():
@@ -71,33 +73,46 @@ def sync(device):
         torch.mps.synchronize()
 
 
-def build_model(opt_path, weights, device, snr_attention=False):
+def build_model(opt_path, weights, device, snr_attention=False, learned_noise=False):
     opt = yaml.safe_load(open(opt_path))
     net_opt = dict(opt["network_g"])
     arch = net_opt.pop("type")                       # e.g. "RetinexFormer"
     assert arch == "RetinexFormer", f"this script only builds RetinexFormer, yml says {arch}"
     model = RetinexFormer(**net_opt)                 # n_feat, stage, num_blocks ... from the yml
 
+    # Enable our modules BEFORE loading: SNR gate adds no keys; learned noise adds new keys.
+    if snr_attention and learned_noise:
+        raise ValueError("Use either --snr-attention or --learned-noise")
+    if snr_attention:
+        enable_snr_guidance(model)
+    if learned_noise:
+        enable_learned_noise(model)
+
     # Our own .pth/.state files are trusted; .pth from BasicSR holds only tensors under 'params'.
     ckpt = torch.load(weights, map_location="cpu")
     state = ckpt.get("params", ckpt)
     state = {k.replace("module.", "", 1): v for k, v in state.items()}
-    model.load_state_dict(state, strict=True)
-    if snr_attention:
-        enable_snr_guidance(model)
+    model.load_state_dict(state, strict=not learned_noise)
 
     factor = int(opt.get("val", {}).get("window_size", 4))   # padding multiple used in official test
     n_params = sum(p.numel() for p in model.parameters())
     return model.to(device).eval(), factor, n_params
 
 
-def enhance(model, rgb, device, factor, snr_alpha=None):
+def enhance(model, rgb, device, factor, snr_alpha=None, noise_scale=None):
     """rgb: HxWx3 uint8 -> enhanced HxWx3 uint8 (same steps as test_from_dataset.py)."""
     x = torch.from_numpy(rgb.astype(np.float32) / 255.0).permute(2, 0, 1)[None].to(device)
     h, w = x.shape[2], x.shape[3]
     padh, padw = (factor - h % factor) % factor, (factor - w % factor) % factor
     x = F.pad(x, (0, padw, 0, padh), mode="reflect")
-    y = (guided_forward(model, x, snr_alpha) if snr_alpha is not None else model(x))[:, :, :h, :w]
+    if noise_scale is not None:
+        model._noise_scale = noise_scale
+        out = learned_guided_forward(model, x, noise_scale)
+    elif snr_alpha is not None:
+        out = guided_forward(model, x, snr_alpha)
+    else:
+        out = model(x)
+    y = out[:, :, :h, :w]
     y = torch.clamp(y, 0, 1)[0].permute(1, 2, 0).cpu().numpy()
     return (y * 255.0).round().astype(np.uint8)
 
@@ -115,6 +130,8 @@ def main():
     p.add_argument("--device", default=None, help="force cpu / mps / cuda (e.g. cpu for very large images on the 8 GB Mac)")
     p.add_argument("--snr-attention", action="store_true", help="guide IG-MSA value features with input SNR")
     p.add_argument("--alpha", type=float, default=2.0, help="SNR attention strength (used with --snr-attention)")
+    p.add_argument("--learned-noise", action="store_true", help="use the learned noise-aware attention")
+    p.add_argument("--noise-scale", type=float, default=0.5, help="strength of the learned noise gate")
     args = p.parse_args()
 
     # Accept both named devices ("cuda", "cpu") and bare GPU indices ("0", "1").
@@ -124,7 +141,7 @@ def main():
         device = torch.device("cuda", int(args.device))
     else:
         device = torch.device(args.device)
-    model, factor, n_params = build_model(args.opt, args.weights, device, args.snr_attention)
+    model, factor, n_params = build_model(args.opt, args.weights, device, args.snr_attention, args.learned_noise)
 
     out_dir = Path(args.output)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -145,6 +162,7 @@ def main():
             out = enhance(
                 model, rgb, device, factor,
                 args.alpha if args.snr_attention else None,
+                args.noise_scale if args.learned_noise else None,
             )
             sync(device)
             if i > 0:                      # image 0 includes one-time warm-up

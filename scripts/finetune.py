@@ -58,6 +58,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 from losses import l1_loss, total_loss  # noqa: E402
 from snr_guidance import enable_snr_guidance, guided_forward  # noqa: E402
+from learned_noise import enable_learned_noise, guided_forward as learned_guided_forward  # noqa: E402
 
 
 def pick_device(force=None):
@@ -170,7 +171,7 @@ def save_checkpoint(data, path):
 
 
 @torch.inference_mode()
-def validate(model, names, low, gt, device, factor, snr_attention, alpha, limit=0):
+def validate(model, names, low, gt, device, factor, snr_attention, alpha, learned_noise=False, limit=0):
     """Compute mean per-image PSNR on held-out validation pairs."""
     model.eval()
     scores = []
@@ -181,7 +182,12 @@ def validate(model, names, low, gt, device, factor, snr_attention, alpha, limit=
         h, w = x.shape[-2:]
         padh, padw = (factor - h % factor) % factor, (factor - w % factor) % factor
         x_padded = F.pad(x, (0, padw, 0, padh), mode="reflect") if padh or padw else x
-        prediction = guided_forward(model, x_padded, alpha) if snr_attention else model(x_padded)
+        if learned_noise:
+            prediction = learned_guided_forward(model, x_padded, model._noise_scale)
+        elif snr_attention:
+            prediction = guided_forward(model, x_padded, alpha)
+        else:
+            prediction = model(x_padded)
         prediction = prediction[:, :, :h, :w].clamp(0, 1)
         mse = torch.mean((prediction - target) ** 2).item()
         scores.append(float("inf") if mse == 0 else -10 * math.log10(mse))
@@ -208,6 +214,10 @@ def main():
     ap.add_argument("--limit-images", type=int, default=0, help="use only the first N pairs (smoke tests)")
     ap.add_argument("--log-every", type=int, default=50)
     ap.add_argument("--snr-attention", action="store_true", help="guide IG-MSA value features with input SNR")
+    ap.add_argument("--learned-noise", action="store_true",
+                    help="learn a noise map and fuse it into IG-MSA value features")
+    ap.add_argument("--noise-scale", type=float, default=0.5,
+                    help="strength of the learned noise gate (0 = identical to the original model)")
     ap.add_argument("--val-fraction", type=float, default=0.0, help="hold out this fraction of training pairs")
     ap.add_argument("--val-seed", type=int, default=2026, help="fixed seed for the train/validation split")
     ap.add_argument("--val-every", type=int, default=1000)
@@ -232,11 +242,25 @@ def main():
     net_opt = dict(yaml.safe_load(open(args.opt))["network_g"])
     net_opt.pop("type")
     model = RetinexFormer(**net_opt)
+    guided_blocks = 0
+    if args.snr_attention and args.learned_noise:
+        raise ValueError("Use either --snr-attention or --learned-noise, not both")
+    if args.snr_attention:
+        guided_blocks = enable_snr_guidance(model)
+    if args.learned_noise:
+        guided_blocks = enable_learned_noise(model)
+        model._noise_scale = args.noise_scale
     if args.pretrained:
         ckpt = torch.load(args.pretrained, map_location="cpu")
         state = {k.replace("module.", "", 1): v for k, v in ckpt.get("params", ckpt).items()}
-        model.load_state_dict(state, strict=True)
-    guided_blocks = enable_snr_guidance(model) if args.snr_attention else 0
+        if args.learned_noise:
+            # New estimator/fusion keys are absent from the released checkpoint; every original key must match.
+            missing, unexpected = model.load_state_dict(state, strict=False)
+            bad = [k for k in unexpected if not k.startswith("noise_fuse") and "estimator_noise" not in k]
+            if bad or len(missing) == 0:
+                raise RuntimeError(f"Unexpected checkpoint mismatch: missing={list(missing)[:3]}, bad={bad[:3]}")
+        else:
+            model.load_state_dict(state, strict=True)
     model = model.to(device).train()
 
     # ---- data + the fixed batch schedule ----
@@ -269,7 +293,7 @@ def main():
         old_cfg = json.loads(config_path.read_text())
         fixed_keys = (
             "loss", "alpha", "fft_weight", "iters", "lr", "batch", "crop", "seed",
-            "pretrained", "snr_attention", "val_fraction", "val_seed",
+            "pretrained", "snr_attention", "learned_noise", "noise_scale", "val_fraction", "val_seed",
             "val_every", "val_limit", "checkpoint_every", "log_every", "repo",
         )
         changed = [key for key in fixed_keys if old_cfg.get(key) != cfg.get(key)]
@@ -303,7 +327,12 @@ def main():
     factor = int(yaml.safe_load(open(args.opt)).get("val", {}).get("window_size", 4))
     for it in range(start_iter + 1, args.iters + 1):
         x, y = make_batch(schedule[it - 1], low, gt, args.crop, device)
-        pred = guided_forward(model, x, args.alpha) if args.snr_attention else model(x)
+        if args.learned_noise:
+            pred = learned_guided_forward(model, x, args.noise_scale)
+        elif args.snr_attention:
+            pred = guided_forward(model, x, args.alpha)
+        else:
+            pred = model(x)
         loss = total_loss(args.loss, pred, y, x, alpha=args.alpha, fft_weight=args.fft_weight)
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -319,7 +348,7 @@ def main():
         if val_names and (it % args.val_every == 0 or it == args.iters):
             val_psnr = validate(
                 model, val_names, val_low, val_gt, device, factor,
-                args.snr_attention, args.alpha, args.val_limit,
+                args.snr_attention, args.alpha, args.learned_noise, args.val_limit,
             )
             if val_psnr > best_val_psnr:
                 best_val_psnr = val_psnr
@@ -354,6 +383,8 @@ def main():
         "best_val_psnr": None if best_val_psnr == float("-inf") else best_val_psnr,
         "final_iter": args.iters,
         "snr_attention": args.snr_attention,
+        "learned_noise": args.learned_noise,
+        "noise_scale": args.noise_scale if args.learned_noise else 0.0,
         "alpha": args.alpha if args.snr_attention else 0.0,
     }, indent=2) + "\n")
     print(f"saved {out / 'final.pth'}")
