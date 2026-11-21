@@ -99,19 +99,40 @@ def build_model(opt_path, weights, device, snr_attention=False, learned_noise=Fa
     return model.to(device).eval(), factor, n_params
 
 
-def enhance(model, rgb, device, factor, snr_alpha=None, noise_scale=None):
+def enhance(model, rgb, device, factor, snr_alpha=None, noise_scale=None, self_ensemble=False):
     """rgb: HxWx3 uint8 -> enhanced HxWx3 uint8 (same steps as test_from_dataset.py)."""
     x = torch.from_numpy(rgb.astype(np.float32) / 255.0).permute(2, 0, 1)[None].to(device)
     h, w = x.shape[2], x.shape[3]
     padh, padw = (factor - h % factor) % factor, (factor - w % factor) % factor
     x = F.pad(x, (0, padw, 0, padh), mode="reflect")
-    if noise_scale is not None:
-        model._noise_scale = noise_scale
-        out = learned_guided_forward(model, x, noise_scale)
-    elif snr_alpha is not None:
-        out = guided_forward(model, x, snr_alpha)
+
+    def run(t):
+        if noise_scale is not None:
+            model._noise_scale = noise_scale
+            return learned_guided_forward(model, t, noise_scale)
+        if snr_alpha is not None:
+            return guided_forward(model, t, snr_alpha)
+        return model(t)
+
+    if self_ensemble:
+        # Official Retinexformer 8-way geometric TTA: average predictions over flips + 90 deg rotation.
+        # Each transformed image is un-transformed back before averaging.
+        outs = []
+        for hf in (False, True):
+            for vf in (False, True):
+                for rot in (False, True):
+                    t = x
+                    if hf: t = torch.flip(t, (-2,))
+                    if vf: t = torch.flip(t, (-1,))
+                    if rot: t = torch.rot90(t, dims=(-2, -1))
+                    o = run(t)
+                    if rot: o = torch.rot90(o, dims=(-2, -1), k=3)
+                    if vf: o = torch.flip(o, (-1,))
+                    if hf: o = torch.flip(o, (-2,))
+                    outs.append(o)
+        out = torch.stack(outs).mean(0)
     else:
-        out = model(x)
+        out = run(x)
     y = out[:, :, :h, :w]
     y = torch.clamp(y, 0, 1)[0].permute(1, 2, 0).cpu().numpy()
     return (y * 255.0).round().astype(np.uint8)
@@ -132,6 +153,7 @@ def main():
     p.add_argument("--alpha", type=float, default=2.0, help="SNR attention strength (used with --snr-attention)")
     p.add_argument("--learned-noise", action="store_true", help="use the learned noise-aware attention")
     p.add_argument("--noise-scale", type=float, default=0.5, help="strength of the learned noise gate")
+    p.add_argument("--self-ensemble", action="store_true", help="8-way geometric test-time augmentation (official Retinexformer)")
     args = p.parse_args()
 
     # Accept both named devices ("cuda", "cpu") and bare GPU indices ("0", "1").
@@ -163,6 +185,7 @@ def main():
                 model, rgb, device, factor,
                 args.alpha if args.snr_attention else None,
                 args.noise_scale if args.learned_noise else None,
+                args.self_ensemble,
             )
             sync(device)
             if i > 0:                      # image 0 includes one-time warm-up

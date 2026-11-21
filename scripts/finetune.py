@@ -197,7 +197,7 @@ def validate(model, names, low, gt, device, factor, snr_attention, alpha, learne
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--loss", required=True, choices=["l1", "snr", "fft", "snr_fft"])
+    ap.add_argument("--loss", required=True, choices=["l1", "snr", "fft", "snr_fft", "gtmean"])
     ap.add_argument("--alpha", type=float, default=1.0, help="SNR weighting strength (lowest-SNR pixel = 1+alpha x highest)")
     ap.add_argument("--fft_weight", type=float, default=0.05)
     ap.add_argument("--iters", type=int, default=5000)
