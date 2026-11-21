@@ -33,10 +33,17 @@ PSNR gains on 100-image sets rarely reach p<0.05 per-image.
 finding that the released LOL-v1 weights are unusually strong and that extra training on the 485-image
 LOL-v1 train overfits. The gain is specific to LOL-v2-syn; report it as such.
 
+## LOL-v2-real: effect does NOT transfer (checked 2026-11-22)
+
+GT-Mean + self-ensemble on LOL-v2-real: **21.7595 dB / 0.8652 SSIM / 0.1442 LPIPS**, vs official
+Retinexformer **22.7940 / 0.8386 / 0.1707**. PSNR is *significantly worse* (−1.0345 dB; 37/100 wins,
+sign test p=0.012, t-test p=0.025) even though SSIM and LPIPS improve. Combined with LOL-v1 (24.5398
+vs 25.1532), the GT-Mean gain is specific to LOL-v2-syn. The report now states this explicitly and
+claims the improvement only on that dataset.
+
 ## Still to verify
 - Official Retinexformer **with** the same 8-way self-ensemble, so the comparison is TTA-vs-TTA.
   Literature suggests TTA adds ~0.09 dB to any model, so the fair GT-Mean gain is likely ~+0.15 dB.
-- LOL-v2-real matched comparison (background job running at time of writing).
 
 ## Implementation added
 - `scripts/losses.py`: `gtmean_loss()` byte-for-byte faithful to the authors' released implementation

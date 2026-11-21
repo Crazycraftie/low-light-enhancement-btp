@@ -613,8 +613,11 @@ self-ensemble improves the GT-Mean model on 62 of 100 images (two-sided sign tes
 test-time gain is statistically reliable; the comparison with the official model is positive in mean
 (57/100 wins, $p=0.193$) but not individually significant on 100 images. On LOL-v1 the same weights score
 24.5398~dB against the official model's 25.1532~dB: consistent with our earlier finding that the released
-LOL-v1 checkpoint is unusually strong and that extra training on 485 pairs overfits. We therefore claim the
-gain only on LOL-v2-syn, the larger paired test set used for model selection throughout this work.
+LOL-v1 checkpoint is unusually strong and that extra training on 485 pairs overfits. On LOL-v2-real the
+released GT-Mean model scores 21.7595~dB against the official model's 22.7940~dB, a significant PSNR loss
+(37/100 wins, sign test $p=0.012$) even though SSIM and LPIPS improve (0.8652 vs.\ 0.8386, 0.1442 vs.\ 0.1707).
+We therefore claim the gain only on LOL-v2-syn, the larger paired test set used for model selection throughout
+this work, and state explicitly that the effect does not transfer to the other two LOL test sets.
 
 % =====================================================================================================
 \section{Conclusion}\label{sec:conclusion}

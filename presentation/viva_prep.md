@@ -636,8 +636,9 @@ On LOL-v1 it does not help, so I claim the gain only on LOL-v2-syn."
   GT-Mean explicitly removes the global brightness offset from what the network has to regress, so L1 focuses on structure.
 - *Is +0.24 dB significant?* The self-ensemble step is (62/100, p=0.021). The full comparison with the official model is
   positive in mean but not individually significant on 100 images (57/100, p=0.193) — I state that honestly.
-- *Why not claim LOL-v1 too?* It scores 24.54 there vs 25.15 official. The released LOL-v1 weights are unusually strong and
-  485 training pairs overfit. I claim the gain only on the larger, selection-consistent LOL-v2-syn set.
+- *Why not claim LOL-v1 or LOL-v2-real too?* On LOL-v1 it scores 24.54 vs 25.15 official (released weights unusually strong,
+  485 pairs overfit). On LOL-v2-real it is 21.76 vs 22.79 — significantly *worse* in PSNR (37/100, p=0.012), though SSIM
+  and LPIPS improve. The effect does not transfer; I claim it only on LOL-v2-syn, the set used for selection.
 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 22 — Conclusions
