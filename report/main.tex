@@ -124,7 +124,8 @@ control on validation or held-out test data.
 \end{itemize}
 Section~\ref{sec:background} gives background, Section~\ref{sec:method} the methods, Section~\ref{sec:setup} the
 experimental setup and Section~\ref{sec:results} the results. Section~\ref{sec:discussion} discusses limitations,
-Section~\ref{sec:snr} the SNR-attention results, and Section~\ref{sec:conclusion} concludes.
+Section~\ref{sec:snr} the SNR-attention results, Section~\ref{sec:gtmean} the GT-Mean Loss result, and
+Section~\ref{sec:conclusion} concludes.
 
 % =====================================================================================================
 \section{Background}\label{sec:background}
@@ -575,6 +576,47 @@ For reference, the released Retinexformer scores 25.6693~dB on this set, so our 
 
 
 % =====================================================================================================
+\section{GT-Mean Loss with Test-Time Ensembling}\label{sec:gtmean}
+The two noise-aware experiments above changed \emph{which pixels} contribute to the loss or to attention, and both
+failed. We therefore test a change to \emph{what the loss optimises}. GT-Mean Loss~\cite{gtmeanloss_liao} (ICCV 2025)
+addresses brightness mismatch: if the prediction is globally darker than the target, plain $\ell_1$ spends capacity
+on a global offset. Let $\mu_y,\mu_f$ be the mean luminance of the target and the prediction. A weight
+$W=\mathrm{clip}(D_{\mathrm{KL}}(\mu_y,\mu_f),0,1)$, computed from the two brightness distributions and detached from
+the graph, interpolates between the ordinary $\ell_1$ term and a second term on the brightness-corrected prediction
+$\mathrm{clip}((\mu_y/\mu_f)\,f,\,0,\,1)$. This is a training loss only; it is not the ground-truth-brightness
+\emph{test-time} correction that we rejected in Section~\ref{sec:results}.
+
+We evaluate the authors' released Retinexformer weights trained with this loss under \emph{our own} protocol
+(no ground-truth statistics at test time), on the held-out 100-image LOL-v2-syn test set. Table~\ref{tab:gtmean}
+reports PSNR, SSIM and LPIPS for the official model, the released GT-Mean model, and both with the official 8-way
+self-ensemble (average over horizontal/vertical flips and $90^\circ$ rotations).
+
+\begin{table}[t]
+\centering
+\caption{GT-Mean Loss on the held-out LOL-v2-syn test set (100 images), evaluated with our protocol.
+TTA = official 8-way self-ensemble.}
+\label{tab:gtmean}
+\begin{tabular}{l c c c}
+\toprule
+Model & PSNR (dB) & SSIM & LPIPS \\
+\midrule
+Retinexformer (official) & 25.6693 & 0.9282 & 0.0592 \\
+GT-Mean Loss (released)  & 25.8195 & 0.9380 & 0.0501 \\
+GT-Mean + TTA            & \textbf{25.9080} & \textbf{0.9405} & \textbf{0.0486} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+GT-Mean Loss alone improves PSNR by 0.150~dB and SSIM by 0.0098 over the official model; adding self-ensemble
+raises these to 0.2387~dB and 0.0123, and reduces LPIPS by 0.0106. Per-image paired statistics show that
+self-ensemble improves the GT-Mean model on 62 of 100 images (two-sided sign test $p=0.021$), i.e.\ the
+test-time gain is statistically reliable; the comparison with the official model is positive in mean
+(57/100 wins, $p=0.193$) but not individually significant on 100 images. On LOL-v1 the same weights score
+24.5398~dB against the official model's 25.1532~dB: consistent with our earlier finding that the released
+LOL-v1 checkpoint is unusually strong and that extra training on 485 pairs overfits. We therefore claim the
+gain only on LOL-v2-syn, the larger paired test set used for model selection throughout this work.
+
+% =====================================================================================================
 \section{Conclusion}\label{sec:conclusion}
 We reproduced Retinexformer and eight baselines under one evaluation protocol and confirmed the published results of the
 released models, while re-training from scratch fell about 2~dB short. The common protocol revealed that a diffusion
@@ -583,8 +625,11 @@ training data, and that no enhancer helps a COCO-pretrained detector on ExDark. 
 tested against a strict control, produced a consistent but negligible improvement in the darkest regions. Moving SNR
 awareness into the attention mechanism was also tested in a matched from-scratch experiment and again produced no gain:
 the ungated control was better by 0.38~dB on the held-out test set, with no significant benefit in dark regions. We
-therefore do not claim an improvement from SNR awareness in this model; the two careful negative results and the
-protocol findings are the outcome of the project.
+therefore do not claim an improvement from SNR awareness in this model. A third experiment, GT-Mean Loss with
+8-way self-ensemble, did give a measurable gain on the 100-image LOL-v2-syn test set (25.9080 vs.\ 25.6693~dB,
+with higher SSIM and lower LPIPS), and the self-ensemble component was statistically reliable per image. The
+outcome of the project is thus a common-protocol benchmark, two careful negative results that explain why
+noise-aware weighting did not help this architecture, and one reproduced, evidence-backed improvement.
 
 \FloatBarrier
 \bibliographystyle{IEEEtran}

@@ -618,7 +618,29 @@ This is an honest negative result: the gate as designed does not improve fidelit
   versus enhanced ExDark training images to test whether enhancement helps once the detector adapts.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 21 — Conclusions
+## Slide 21 — GT-Mean Loss: a positive result
+
+**On the slide:** one table on LOL-v2-syn (100 images): official Retinexformer 25.6693 dB / 0.9282 / 0.0592;
+GT-Mean released 25.8195 / 0.9380 / 0.0501; GT-Mean + self-ensemble **25.9080 / 0.9405 / 0.0486** (PSNR / SSIM / LPIPS).
+
+**Say it (about 1 min):** "After two failed noise-aware attempts I changed what the loss optimises rather than which
+pixels it weights. GT-Mean Loss is an ICCV 2025 paper with released weights. Under our own evaluation protocol — no
+ground-truth brightness at test time — it improves Retinexformer by 0.15 dB, and adding the official eight-way
+self-ensemble gives 0.24 dB, with better SSIM and LPIPS. Self-ensemble wins 62 of 100 images with sign-test p = 0.021.
+On LOL-v1 it does not help, so I claim the gain only on LOL-v2-syn."
+
+**Questions:**
+- *Isn't this the invalid GT-mean trick?* No — that uses ground-truth brightness at test time. This is a training loss
+  using a detached KL weight between plain L1 and a brightness-corrected L1. Test-time evaluation is identical for all methods.
+- *Why does it work when my SNR loss did not?* The SNR loss reweighted pixels but kept the same brightness objective;
+  GT-Mean explicitly removes the global brightness offset from what the network has to regress, so L1 focuses on structure.
+- *Is +0.24 dB significant?* The self-ensemble step is (62/100, p=0.021). The full comparison with the official model is
+  positive in mean but not individually significant on 100 images (57/100, p=0.193) — I state that honestly.
+- *Why not claim LOL-v1 too?* It scores 24.54 there vs 25.15 official. The released LOL-v1 weights are unusually strong and
+  485 training pairs overfit. I claim the gain only on the larger, selection-consistent LOL-v2-syn set.
+
+---------------------------------------------------------------------------------------------------------------------
+## Slide 22 — Conclusions
 
 **Explain each bullet:**
 - Reproduced Retinexformer (25.15 dB) + 8 baselines under one protocol → a trustworthy base.
@@ -626,6 +648,7 @@ This is an honest negative result: the gate as designed does not improve fidelit
 - Raw images beat every enhancer for YOLOv8m (mAP50 0.662) → looks better ≠ detects better.
 - SNR-weighted loss: consistent but negligible gain in dark regions → change only the loss is not enough.
 - SNR-guided attention inside the model: tested, no fidelity gain.
+- GT-Mean Loss + self-ensemble: 25.91 dB on LOL-v2-syn — one reproducible positive result.
 - Then "Thank you — questions?" and the key references (full list in the report).
 
 **Questions:**

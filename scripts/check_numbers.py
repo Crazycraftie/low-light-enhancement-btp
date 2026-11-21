@@ -61,6 +61,11 @@ def allowed_values():
         "snr_lpips_diff": float(res[("Final-SNR-a4", "LOLv2-syn")]["lpips"])
                           - float(res[("Final-control", "LOLv2-syn")]["lpips"]),
         "snr_dark_diff": 26.1988 - 26.3229,   # dark_region.csv, LOLv2-syn
+        # GT-Mean + TTA vs official Retinexformer (LOLv2-syn results.csv)
+        "gtmean_tta_psnr_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["psnr"])
+                                - float(res[("Retinexformer", "LOLv2-syn")]["psnr"]),
+        "gtmean_tta_ssim_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["ssim"])
+                                - float(res[("Retinexformer", "LOLv2-syn")]["ssim"]),
     }
     # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
     for a in ("0", "2", "4", "8"):
