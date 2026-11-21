@@ -117,7 +117,7 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
 - Slides: `presentation/final.pptx` (+ .pdf), 22 slides with speaker notes, built by `scripts/make_slides.py`
   (numbers read from CSVs). Render check: LibreOffice (`/Applications/LibreOffice.app`).
 - Viva: `presentation/viva_prep.md` (20 Q&A), `report/section_summaries.md`.
-- `scripts/check_numbers.py`: 629 decimal numbers in report/slides/README all traceable to `results/*.csv`.
+- `scripts/check_numbers.py`: 641 decimal numbers in report/slides/README all traceable to `results/*.csv`.
 - Title details filled: Dhirendra Pratap Singh (2301EE49), supervisor Dr. Rajib Kumar Jha (no date, by choice).
 - Key results: Retinexformer released 25.15 dB LOL-v1 (paper 25.16); re-trained 23.10 (GitHub #132: 23.45);
   GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
@@ -132,10 +132,12 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   + test eval), `runs/snr_attention/final/*` configs/logs. YOLOv8 detector fine-tuning on enhanced ExDark was dropped
   for GPU quota — do not claim it was run.
 - Report/slides/viva must reflect the final negative result (see `notes/contribution_findings.md`).
-- **GT-Mean positive result (2026-11-22):** downloaded authors' released weights (ICCV 2025, arXiv:2507.20148),
+- **Test-time ensembling positive result (2026-11-22):** downloaded authors' released weights (ICCV 2025, arXiv:2507.20148),
   evaluated with OUR protocol. LOL-v2-syn: official 25.6693/0.9282/0.0592 → GT-Mean 25.8195 → GT-Mean + 8-way
   self-ensemble 25.9080/0.9405/0.0486. TTA wins 62/100 (sign p=0.021); vs official mean +0.2387 dB (57/100, p=0.193,
   not individually significant). LOL-v1 worse (24.5398 vs 25.1532), so claim only on v2-syn. `scripts/losses.py`
   has `gtmean_loss()`, `finetune.py --loss gtmean`, `retinexformer_infer.py --self-ensemble`. See `notes/gtmean_finding.md`.
-  Day 1 write-up done (report §GT-Mean, 22-slide deck, viva slide 21). Pending: fair TTA-vs-TTA and v2-real checks;
-  if gate passes, optional gated Kaggle fine-tune (~3 GPU-h) with `--loss gtmean` from official syn weights.
+  Fair comparison done: TTA alone on official +0.1576 dB, 64/100, sign p=0.0066 (reliable, no training);
+  GT-Mean+TTA vs official+TTA only +0.0811 dB, 55/100, p=0.368 (not significant). GT-Mean does not transfer to
+  LOL-v1/v2-real. Report/slides/viva lead with TTA. Day 2 notebook `notebooks/gtmean_day2_gate_kaggle.ipynb`
+  tests GTmean-vs-L1 fine-tuning on validation with a >0.1 dB gate; if it fails, the paper is final.

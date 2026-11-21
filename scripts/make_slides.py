@@ -724,22 +724,25 @@ extra scaling added no useful information for fidelity.""", "Contribution")
     gtm = [["LOL-v2-syn (100 images)", "PSNR", "SSIM", "LPIPS"],
            ["Retinexformer (official)", v("Retinexformer","LOLv2-syn","psnr",4),
             v("Retinexformer","LOLv2-syn","ssim",4), v("Retinexformer","LOLv2-syn","lpips",4)],
+           ["Retinexformer + TTA", v("Retinexformer + self-ensemble","LOLv2-syn","psnr",4),
+            v("Retinexformer + self-ensemble","LOLv2-syn","ssim",4), v("Retinexformer + self-ensemble","LOLv2-syn","lpips",4)],
            ["GT-Mean Loss (released)", v("GT-Mean Loss (released)","LOLv2-syn","psnr",4),
             v("GT-Mean Loss (released)","LOLv2-syn","ssim",4), v("GT-Mean Loss (released)","LOLv2-syn","lpips",4)],
            ["GT-Mean + self-ensemble", v("GT-Mean Loss + self-ensemble","LOLv2-syn","psnr",4),
             v("GT-Mean Loss + self-ensemble","LOLv2-syn","ssim",4),
             v("GT-Mean Loss + self-ensemble","LOLv2-syn","lpips",4)]]
-    s = slide("GT-Mean Loss: a positive result", f"""
-SAY: After two failed noise-aware attempts I changed what the loss optimises rather than which pixels it weights. GT-Mean Loss, from ICCV 2025, fixes global brightness mismatch with a detached KL-based weight between plain L1 and a brightness-corrected L1. Using the authors' released weights under OUR protocol, it improves Retinexformer on the 100-image LOL-v2-syn test set: {gtm[1][1]} to {gtm[3][1]} dB PSNR, with better SSIM and LPIPS too. Adding the official 8-way self-ensemble improves the GT-Mean model on 62 of 100 images, sign-test p = 0.021.
+    s = slide("Test-time ensembling: a reliable gain", f"""
+SAY: After two failed noise-aware attempts I separated two effects. First, the official 8-way self-ensemble applied to the UNCHANGED released model raises PSNR from {gtm[1][1]} to {gtm[2][1]} dB on the 100-image LOL-v2-syn test — it wins 64 of 100 images, sign-test p = 0.0066, so this small gain is statistically reliable and needs no training. Second, GT-Mean Loss, an ICCV 2025 training loss that fixes global brightness mismatch, gives a similar PSNR gain with better SSIM and LPIPS, but when both models use self-ensemble its extra advantage is only 0.0811 dB, not significant. The best score {gtm[4][1]} combines both.
 
 Q: Is this the invalid GT-mean test trick? A: No. That trick uses ground-truth brightness at test time and inflates numbers. This is a TRAINING loss; evaluation uses no ground-truth statistics, exactly like every other method.
-Q: Does it help every dataset? A: No. On LOL-v1 these weights score {v("GT-Mean Loss + self-ensemble (LOL-v1)","LOLv1","psnr",4)} dB against the official {v("Retinexformer","LOLv1","psnr",4)}. We claim the gain only on LOL-v2-syn, the set used for selection.""", "Contribution")
+Q: What is the real contribution then? A: The reliable result is test-time ensembling: +0.1576 dB with p = 0.0066 at 8x inference cost. GT-Mean adds a non-significant increment and does not transfer to LOL-v1 or LOL-v2-real.""", "Contribution")
     table(s, gtm, 0.6, 1.7, 12.1, [4.6, 2.5, 2.5, 2.5], size=15, row_h=0.6,
           bold_cells=best_cells(gtm, [1, 2, 3], [True, True, False]))
     text(s, 0.6, 4.8, 12.1, 0.6,
-         f"GT-Mean + TTA vs official: +0.2387 dB PSNR, +0.0123 SSIM, -0.0106 LPIPS on LOL-v2-syn.", 17, BLUE, True)
+         "TTA alone on official: +0.1576 dB, 64/100 wins, sign-test p = 0.0066 (statistically reliable, no training).",
+         16, BLUE, True)
     text(s, 0.6, 5.5, 12.1, 0.9,
-         "Paired per-image: self-ensemble wins 62/100 (p = 0.021); mean gain over official is +0.2387 dB (57/100, p = 0.193, not individually significant).",
+         "GT-Mean + TTA vs official + TTA: +0.0811 dB (55/100, p = 0.368, not significant). Best combined score 25.9080 dB.",
          14, INK2)
 
     # 19 --------------------------------------------------------------- conclusion

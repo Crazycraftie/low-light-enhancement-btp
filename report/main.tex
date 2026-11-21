@@ -593,31 +593,36 @@ self-ensemble (average over horizontal/vertical flips and $90^\circ$ rotations).
 
 \begin{table}[t]
 \centering
-\caption{GT-Mean Loss on the held-out LOL-v2-syn test set (100 images), evaluated with our protocol.
-TTA = official 8-way self-ensemble.}
+\caption{Test-time ensembling and GT-Mean Loss on the held-out LOL-v2-syn test set (100 images), evaluated
+with our protocol. TTA = official 8-way self-ensemble.}
 \label{tab:gtmean}
 \begin{tabular}{l c c c}
 \toprule
 Model & PSNR (dB) & SSIM & LPIPS \\
 \midrule
 Retinexformer (official) & 25.6693 & 0.9282 & 0.0592 \\
+Retinexformer + TTA      & 25.8269 & 0.9332 & 0.0560 \\
 GT-Mean Loss (released)  & 25.8195 & 0.9380 & 0.0501 \\
 GT-Mean + TTA            & \textbf{25.9080} & \textbf{0.9405} & \textbf{0.0486} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-GT-Mean Loss alone improves PSNR by 0.150~dB and SSIM by 0.0098 over the official model; adding self-ensemble
-raises these to 0.2387~dB and 0.0123, and reduces LPIPS by 0.0106. Per-image paired statistics show that
-self-ensemble improves the GT-Mean model on 62 of 100 images (two-sided sign test $p=0.021$), i.e.\ the
-test-time gain is statistically reliable; the comparison with the official model is positive in mean
-(57/100 wins, $p=0.193$) but not individually significant on 100 images. On LOL-v1 the same weights score
-24.5398~dB against the official model's 25.1532~dB: consistent with our earlier finding that the released
-LOL-v1 checkpoint is unusually strong and that extra training on 485 pairs overfits. On LOL-v2-real the
-released GT-Mean model scores 21.7595~dB against the official model's 22.7940~dB, a significant PSNR loss
-(37/100 wins, sign test $p=0.012$) even though SSIM and LPIPS improve (0.8652 vs.\ 0.8386, 0.1442 vs.\ 0.1707).
-We therefore claim the gain only on LOL-v2-syn, the larger paired test set used for model selection throughout
-this work, and state explicitly that the effect does not transfer to the other two LOL test sets.
+\emph{The reliable gain comes from test-time ensembling, not from the training loss.} Applying the official
+8-way self-ensemble to the \emph{unchanged} released model raises PSNR by 0.1576~dB; it wins 64 of 100 images
+(two-sided sign test $p=0.0066$, paired $t$-test $p=0.0015$), and also improves SSIM and LPIPS. This is a
+statistically reliable improvement that needs no training at all. GT-Mean Loss by itself gives a similar
+PSNR gain (25.8195~dB, +0.150~dB) with a larger SSIM/LPIPS improvement, but when both models use TTA the
+remaining difference is only 0.0811~dB (55/100 wins, $p=0.368$) --- not significant. The highest score,
+25.9080~dB, combines both, but most of that gain is attributable to self-ensemble.
+
+The GT-Mean effect is also dataset-specific. On LOL-v1 the same weights score 24.5398~dB against the official
+model's 25.1532~dB: consistent with our earlier finding that the released LOL-v1 checkpoint is unusually
+strong and that extra training on 485 pairs overfits. On LOL-v2-real the released GT-Mean model scores
+21.7595~dB against the official model's 22.7940~dB, a significant PSNR loss (37/100 wins, sign test
+$p=0.012$) even though SSIM and LPIPS improve (0.8652 vs.\ 0.8386, 0.1442 vs.\ 0.1707). We therefore do not
+claim an improvement from the training loss; the transferable result is that the official 8-way self-ensemble
+gives a small but reliable PSNR gain on LOL-v2-syn, at 8x inference cost.
 
 % =====================================================================================================
 \section{Conclusion}\label{sec:conclusion}
@@ -628,11 +633,12 @@ training data, and that no enhancer helps a COCO-pretrained detector on ExDark. 
 tested against a strict control, produced a consistent but negligible improvement in the darkest regions. Moving SNR
 awareness into the attention mechanism was also tested in a matched from-scratch experiment and again produced no gain:
 the ungated control was better by 0.38~dB on the held-out test set, with no significant benefit in dark regions. We
-therefore do not claim an improvement from SNR awareness in this model. A third experiment, GT-Mean Loss with
-8-way self-ensemble, did give a measurable gain on the 100-image LOL-v2-syn test set (25.9080 vs.\ 25.6693~dB,
-with higher SSIM and lower LPIPS), and the self-ensemble component was statistically reliable per image. The
-outcome of the project is thus a common-protocol benchmark, two careful negative results that explain why
-noise-aware weighting did not help this architecture, and one reproduced, evidence-backed improvement.
+therefore do not claim an improvement from SNR awareness in this model. A third experiment separated two effects: the official 8-way self-ensemble gave a small but statistically
+reliable PSNR gain on the 100-image LOL-v2-syn test set (+0.1576~dB, 64/100 images, $p=0.0066$), while the
+GT-Mean training loss added only a further, non-significant 0.0811~dB and did not transfer to the other LOL
+sets. The outcome of the project is thus a common-protocol benchmark, two careful negative results that
+explain why noise-aware weighting did not help this architecture, and one reproduced, evidence-backed
+improvement from test-time ensembling.
 
 \FloatBarrier
 \bibliographystyle{IEEEtran}

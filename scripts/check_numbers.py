@@ -66,6 +66,11 @@ def allowed_values():
                                 - float(res[("Retinexformer", "LOLv2-syn")]["psnr"]),
         "gtmean_tta_ssim_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["ssim"])
                                 - float(res[("Retinexformer", "LOLv2-syn")]["ssim"]),
+        # Fair TTA-vs-TTA and the TTA-only effect on the official model (LOLv2-syn results.csv)
+        "tta_only_gain": float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["psnr"])
+                         - float(res[("Retinexformer", "LOLv2-syn")]["psnr"]),
+        "gtmean_vs_tta_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["psnr"])
+                              - float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["psnr"]),
     }
     # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
     for a in ("0", "2", "4", "8"):

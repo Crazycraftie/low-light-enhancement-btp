@@ -41,9 +41,16 @@ sign test p=0.012, t-test p=0.025) even though SSIM and LPIPS improve. Combined 
 vs 25.1532), the GT-Mean gain is specific to LOL-v2-syn. The report now states this explicitly and
 claims the improvement only on that dataset.
 
-## Still to verify
-- Official Retinexformer **with** the same 8-way self-ensemble, so the comparison is TTA-vs-TTA.
-  Literature suggests TTA adds ~0.09 dB to any model, so the fair GT-Mean gain is likely ~+0.15 dB.
+## Fair TTA-vs-TTA comparison (finished 2026-11-22) — the real result
+
+Official Retinexformer + self-ensemble: **25.8269 dB / 0.9332 / 0.0560**. This means:
+- **TTA alone on the official model: +0.1576 dB, 64/100 wins, sign test p=0.0066, t-test p=0.0015.**
+  This is statistically reliable and needs no training — it is the transferable positive result.
+- GT-Mean + TTA vs official + TTA: **+0.0811 dB, 55/100, p=0.368** — not significant.
+- The headline +0.2387 dB of GT-Mean+TTA vs plain official is therefore mostly the TTA effect.
+
+The report, slide 21 and viva now lead with the self-ensemble result and state GT-Mean's smaller,
+non-significant contribution honestly. `scripts/check_numbers.py`: 641 numbers, 0 untraceable.
 
 ## Implementation added
 - `scripts/losses.py`: `gtmean_loss()` byte-for-byte faithful to the authors' released implementation

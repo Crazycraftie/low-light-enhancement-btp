@@ -618,27 +618,26 @@ This is an honest negative result: the gate as designed does not improve fidelit
   versus enhanced ExDark training images to test whether enhancement helps once the detector adapts.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 21 — GT-Mean Loss: a positive result
+## Slide 21 — Test-time ensembling: a reliable gain
 
-**On the slide:** one table on LOL-v2-syn (100 images): official Retinexformer 25.6693 dB / 0.9282 / 0.0592;
-GT-Mean released 25.8195 / 0.9380 / 0.0501; GT-Mean + self-ensemble **25.9080 / 0.9405 / 0.0486** (PSNR / SSIM / LPIPS).
+**On the slide:** one table on LOL-v2-syn (100 images): official 25.6693 / 0.9282 / 0.0592; official + TTA 25.8269 /
+0.9332 / 0.0560; GT-Mean released 25.8195 / 0.9380 / 0.0501; GT-Mean + TTA **25.9080 / 0.9405 / 0.0486** (PSNR / SSIM / LPIPS).
 
-**Say it (about 1 min):** "After two failed noise-aware attempts I changed what the loss optimises rather than which
-pixels it weights. GT-Mean Loss is an ICCV 2025 paper with released weights. Under our own evaluation protocol — no
-ground-truth brightness at test time — it improves Retinexformer by 0.15 dB, and adding the official eight-way
-self-ensemble gives 0.24 dB, with better SSIM and LPIPS. Self-ensemble wins 62 of 100 images with sign-test p = 0.021.
-On LOL-v1 it does not help, so I claim the gain only on LOL-v2-syn."
+**Say it (about 1 min):** "After two failed noise-aware attempts I separated two effects. The official eight-way
+self-ensemble, applied to the unchanged released model, raises PSNR by 0.1576 dB — it wins 64 of 100 images with
+sign-test p = 0.0066, so this is a statistically reliable gain that needs no training at all. GT-Mean Loss, an ICCV 2025
+training loss, gives a similar PSNR gain with better SSIM and LPIPS, but once both models use self-ensemble its extra
+advantage is only 0.0811 dB and not significant. The reliable result is test-time ensembling."
 
 **Questions:**
-- *Isn't this the invalid GT-mean trick?* No — that uses ground-truth brightness at test time. This is a training loss
-  using a detached KL weight between plain L1 and a brightness-corrected L1. Test-time evaluation is identical for all methods.
-- *Why does it work when my SNR loss did not?* The SNR loss reweighted pixels but kept the same brightness objective;
-  GT-Mean explicitly removes the global brightness offset from what the network has to regress, so L1 focuses on structure.
-- *Is +0.24 dB significant?* The self-ensemble step is (62/100, p=0.021). The full comparison with the official model is
-  positive in mean but not individually significant on 100 images (57/100, p=0.193) — I state that honestly.
-- *Why not claim LOL-v1 or LOL-v2-real too?* On LOL-v1 it scores 24.54 vs 25.15 official (released weights unusually strong,
-  485 pairs overfit). On LOL-v2-real it is 21.76 vs 22.79 — significantly *worse* in PSNR (37/100, p=0.012), though SSIM
-  and LPIPS improve. The effect does not transfer; I claim it only on LOL-v2-syn, the set used for selection.
+- *Isn't this the invalid GT-mean trick?* No — that uses ground-truth brightness at test time. GT-Mean is a training loss
+  with a detached KL weight between plain L1 and a brightness-corrected L1; our evaluation uses no ground-truth statistics.
+- *What exactly is self-ensemble?* Average the model's predictions over eight geometric transforms (two flips x 90-degree
+  rotation), un-transforming each output first. It is the authors' own official option and costs 8x inference time.
+- *Why is the sign test significant here but not for GT-Mean?* Self-ensemble wins 64/100 (p=0.0066); GT-Mean over TTA wins
+  55/100 (p=0.368). The ensemble's per-image gain is consistent; the loss change's is not.
+- *Why not claim the other datasets?* GT-Mean scores 24.54 vs 25.15 on LOL-v1 and 21.76 vs 22.79 on LOL-v2-real — it does
+  not transfer. The ensemble result is reported on LOL-v2-syn, the set used for selection.
 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 22 — Conclusions
