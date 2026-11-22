@@ -117,7 +117,7 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
 - Slides: `presentation/final.pptx` (+ .pdf), 22 slides with speaker notes, built by `scripts/make_slides.py`
   (numbers read from CSVs). Render check: LibreOffice (`/Applications/LibreOffice.app`).
 - Viva: `presentation/viva_prep.md` (20 Q&A), `report/section_summaries.md`.
-- `scripts/check_numbers.py`: 641 decimal numbers in report/slides/README all traceable to `results/*.csv`.
+- `scripts/check_numbers.py`: 645 decimal numbers in report/slides/README all traceable to `results/*.csv`.
 - Title details filled: Dhirendra Pratap Singh (2301EE49), supervisor Dr. Rajib Kumar Jha (no date, by choice).
 - Key results: Retinexformer released 25.15 dB LOL-v1 (paper 25.16); re-trained 23.10 (GitHub #132: 23.45);
   GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
@@ -140,4 +140,6 @@ Fallback order if behind: drop diffusion → second loss variant → full-size E
   Fair comparison done: TTA alone on official +0.1576 dB, 64/100, sign p=0.0066 (reliable, no training);
   GT-Mean+TTA vs official+TTA only +0.0811 dB, 55/100, p=0.368 (not significant). GT-Mean does not transfer to
   LOL-v1/v2-real. Report/slides/viva lead with TTA. Day 2 notebook `notebooks/gtmean_day2_gate_kaggle.ipynb`
-  tests GTmean-vs-L1 fine-tuning on validation with a >0.1 dB gate; if it fails, the paper is final.
+  tests GTmean-vs-L1 fine-tuning on validation with a >0.1 dB gate. RESULT: GATE FAILED — L1 28.2212 dB vs
+  GTmean 28.2272 dB, gain +0.0060 dB (GTmean lost in 2/3 seeds; `results/gtmean_gate.csv`). Per the pre-agreed rule,
+  stop: no longer run, no sigma tuning, no test peeking. Final paper stands with the significant self-ensemble result.

@@ -52,6 +52,25 @@ Official Retinexformer + self-ensemble: **25.8269 dB / 0.9332 / 0.0560**. This m
 The report, slide 21 and viva now lead with the self-ensemble result and state GT-Mean's smaller,
 non-significant contribution honestly. `scripts/check_numbers.py`: 641 numbers, 0 untraceable.
 
+## Day 2 gate: GT-Mean loss vs L1 in matched fine-tuning — FAILED (2026-11-22)
+
+Pre-agreed rule: fine-tune official `LOL_v2_synthetic.pth` on LOL-v2-syn train with L1 vs `gtmean_loss`,
+3 seeds, 10k iterations, validation-only selection; continue to a long run only if GTmean beats L1 by
+>0.1 dB mean best validation PSNR. Six runs completed (`notebooks/gtmean_day2_gate_kaggle.ipynb`,
+`results/gtmean_gate.csv`):
+
+| Seed | L1 control | GT-Mean |
+|---|---|---|
+| 42 | 28.1544 | 28.1941 |
+| 43 | 28.2015 | **28.2743** |
+| 44 | **28.3077** | 28.2134 |
+| mean | 28.2212 | 28.2272 |
+
+Gain = **+0.0060 dB**, far below the 0.1 dB gate; GT-Mean lost in 2 of 3 seeds. **Stop.** No longer run,
+no sigma tuning, no test-set peeking. This confirms the fair TTA comparison: the GT-Mean training loss
+adds essentially nothing to this already-strong checkpoint. Final paper stands with the statistically
+reliable self-ensemble result as its positive finding.
+
 ## Implementation added
 - `scripts/losses.py`: `gtmean_loss()` byte-for-byte faithful to the authors' released implementation
   ( symmetric-KL weight W clipped to [0,1] and detached; scaled branch m*pred ).

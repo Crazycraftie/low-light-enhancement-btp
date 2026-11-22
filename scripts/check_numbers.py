@@ -72,6 +72,11 @@ def allowed_values():
         "gtmean_vs_tta_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["psnr"])
                               - float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["psnr"]),
     }
+    gate = list(csv.DictReader(open(R / "gtmean_gate.csv")))
+    for loss in ("l1", "gtmean"):
+        vals = [float(r["best_val_psnr"]) for r in gate if r["loss"] == loss]
+        derived[f"gtmean_gate_{loss}"] = sum(vals) / len(vals)
+    derived["gtmean_gate_gain"] = derived["gtmean_gate_gtmean"] - derived["gtmean_gate_l1"]
     # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
     for a in ("0", "2", "4", "8"):
         vals = [float(r["best_val_psnr"]) for r in csv.DictReader(open(R / "snr_attention.csv"))

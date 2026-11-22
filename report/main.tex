@@ -616,6 +616,13 @@ PSNR gain (25.8195~dB, +0.150~dB) with a larger SSIM/LPIPS improvement, but when
 remaining difference is only 0.0811~dB (55/100 wins, $p=0.368$) --- not significant. The highest score,
 25.9080~dB, combines both, but most of that gain is attributable to self-ensemble.
 
+We also tested the loss directly in a matched fine-tuning experiment, rather than relying on the authors'
+weights: the official LOL-v2-syn checkpoint was fine-tuned on LOL-v2-syn train with plain $\ell_1$ and with
+GT-Mean Loss, three seeds, 10k iterations each, with a validation split used for checkpoint selection.
+A gain of more than 0.1~dB was required in advance to continue to a longer run. The mean best validation
+PSNR was 28.2212~dB for $\ell_1$ and 28.2272~dB for GT-Mean, a difference of only 0.0060~dB (GT-Mean lost
+in two of three seeds). The gate therefore failed and the longer run was not attempted.
+
 The GT-Mean effect is also dataset-specific. On LOL-v1 the same weights score 24.5398~dB against the official
 model's 25.1532~dB: consistent with our earlier finding that the released LOL-v1 checkpoint is unusually
 strong and that extra training on 485 pairs overfits. On LOL-v2-real the released GT-Mean model scores
