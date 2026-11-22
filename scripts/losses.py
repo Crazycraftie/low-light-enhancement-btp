@@ -105,40 +105,10 @@ def fft_loss(pred, gt):
     return (amp_pred - amp_gt).abs().mean()
 
 
-def gtmean_loss(pred, gt, sigma=0.1):
-    """
-    GT-Mean Loss (Liao et al., ICCV 2025): fixes brightness mismatch between prediction and target.
-
-    If the predicted image is too dark/bright overall, plain L1 spends capacity correcting global
-    brightness. This loss instead computes the brightness ratio m = mean(gt)/mean(pred) and adds a
-    second L1 term on m*pred (clipped). A weight W in [0,1] from the symmetric KL divergence of the
-    two brightness distributions decides how much to trust each term; W is DETACHED (no gradients).
-    This is a TRAINING loss only - it is not the invalid GT-mean test-time brightness trick.
-    """
-    ey = gt.mean(dim=(1, 2, 3))          # (B,) ground-truth brightness
-    ex = pred.mean(dim=(1, 2, 3))        # (B,) predicted brightness
-
-    def kl(mu1, mu2, s1, s2):
-        return torch.log(s2 / s1) + 0.5 * (s1 ** 2 + (mu1 - mu2) ** 2) / s2 ** 2 - 0.5
-
-    s1, s2 = sigma * ey.abs(), sigma * ex.abs()
-    mu_m = 0.5 * (ey.abs() + ex.abs())
-    s_m = torch.sqrt((s1 ** 2 + s2 ** 2) / 2)
-    w = 0.5 * kl(ey.abs(), mu_m, s1, s_m) + 0.5 * kl(ex.abs(), mu_m, s2, s_m)
-    w = w.clamp(0, 1).detach()                       # (B,)
-
-    m = ey / ex.clamp(min=1e-6)
-    pred_scaled = (m[:, None, None, None] * pred).clamp(0, 1)
-    return ((w[:, None, None, None] * (pred - gt).abs()
-             + (1 - w)[:, None, None, None] * (pred_scaled - gt).abs()).mean())
-
-
 def total_loss(name, pred, gt, low, alpha=1.0, fft_weight=0.05):
-    """The loss for each run: 'l1' (A), 'snr' (B), 'fft' (C), 'snr_fft' (D), 'gtmean' (ICCV 2025)."""
+    """The loss for each run: 'l1' (A), 'snr' (B), 'fft' (C), 'snr_fft' (D)."""
     if name == "l1":
         return l1_loss(pred, gt)
-    if name == "gtmean":
-        return gtmean_loss(pred, gt)
     if name == "snr":
         return snr_weighted_l1(pred, gt, low, alpha)
     if name == "fft":

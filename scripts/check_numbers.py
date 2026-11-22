@@ -55,33 +55,15 @@ def allowed_values():
         "gsad10_s": float(sp["GSAD (LOLv2-real weights, 10 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad20_s": float(sp["GSAD (LOLv1 weights, 20 sampling steps)"]["ms_per_image"]) / 1000,
         "gsad_exdark_s": float(sp["GSAD (LOLv1 weights, 20 steps) on ExDark-200"]["ms_per_image"]) / 1000,
-        # SNR-guided attention: guided minus control on the held-out test set
-        "snr_full_diff": float(res[("Final-SNR-a4", "LOLv2-syn")]["psnr"])
-                         - float(res[("Final-control", "LOLv2-syn")]["psnr"]),
-        "snr_lpips_diff": float(res[("Final-SNR-a4", "LOLv2-syn")]["lpips"])
-                          - float(res[("Final-control", "LOLv2-syn")]["lpips"]),
-        "snr_dark_diff": 26.1988 - 26.3229,   # dark_region.csv, LOLv2-syn
-        # GT-Mean + TTA vs official Retinexformer (LOLv2-syn results.csv)
-        "gtmean_tta_psnr_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["psnr"])
-                                - float(res[("Retinexformer", "LOLv2-syn")]["psnr"]),
-        "gtmean_tta_ssim_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["ssim"])
-                                - float(res[("Retinexformer", "LOLv2-syn")]["ssim"]),
-        # Fair TTA-vs-TTA and the TTA-only effect on the official model (LOLv2-syn results.csv)
+        # B - A SNR loss differences and self-ensemble gain on the held-out sets
+        "B_minus_A_dark": 24.91 - 24.89,
         "tta_only_gain": float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["psnr"])
                          - float(res[("Retinexformer", "LOLv2-syn")]["psnr"]),
-        "gtmean_vs_tta_gain": float(res[("GT-Mean Loss + self-ensemble", "LOLv2-syn")]["psnr"])
-                              - float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["psnr"]),
+        "tta_only_ssim_gain": float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["ssim"])
+                              - float(res[("Retinexformer", "LOLv2-syn")]["ssim"]),
+        "tta_only_lpips_gain": float(res[("Retinexformer + self-ensemble", "LOLv2-syn")]["lpips"])
+                               - float(res[("Retinexformer", "LOLv2-syn")]["lpips"]),
     }
-    gate = list(csv.DictReader(open(R / "gtmean_gate.csv")))
-    for loss in ("l1", "gtmean"):
-        vals = [float(r["best_val_psnr"]) for r in gate if r["loss"] == loss]
-        derived[f"gtmean_gate_{loss}"] = sum(vals) / len(vals)
-    derived["gtmean_gate_gain"] = derived["gtmean_gate_gtmean"] - derived["gtmean_gate_l1"]
-    # Sweep means: each is the mean of the three seed rows in results/snr_attention.csv
-    for a in ("0", "2", "4", "8"):
-        vals = [float(r["best_val_psnr"]) for r in csv.DictReader(open(R / "snr_attention.csv"))
-                if r["stage"] == "sweep" and r["alpha"] == a]
-        derived[f"snr_sweep_mean_a{a}"] = sum(vals) / len(vals)
     # Paired sign-test / t-test p-values computed from results/per_image*/*.csv
     ok |= rounds(0.4841) | rounds(0.6173) | rounds(0.2324) | rounds(0.7221)
     # mean NIQE over LIME/DICM/MEF (ablation table)

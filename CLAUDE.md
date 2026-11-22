@@ -1,145 +1,37 @@
 # CLAUDE.md — BTP: Low-Light Image Enhancement
 
 ## About me and how to help
-- B.Tech student doing my BTP (B.Tech Project). Beginner in deep learning and image processing.
-- Final review panel has high expectations: I must be able to EXPLAIN everything, not just run it.
-- Explain code and errors step by step in simple words. When you write code, comment it well.
-- Timeline: 3 days of coding (Day 1–3 below), then 2 days for report + PPT.
+- B.Tech student; final review panel expects me to EXPLAIN everything, not just run it.
+- Explain code and errors step by step in simple words. Comment code well.
+- This repo is the final, submitted research project. Keep it clean and consistent.
 
 ## Project
-**Title:** Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation
+**Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstream Object Detection Evaluation.**
+Reproduce Retinexformer (ICCV 2023) and strong baselines under one protocol, test a noise-aware
+SNR-weighted loss, and evaluate enhancement for object detection on ExDark.
 
-**Idea:** Reproduce Retinexformer (ICCV 2023) and strong baselines, evaluate on image quality AND on
-whether enhancement helps object detection in the dark, then pilot a noise-aware improvement
-(SNR-weighted loss followed by an SNR-guided attention variant) motivated by noise amplification in dark regions.
+Main paper: https://github.com/caiyuanhao1998/Retinexformer
 
-**Main paper:** Retinexformer — https://github.com/caiyuanhao1998/Retinexformer
-**Related:** SNR-Aware (CVPR 2022), SCI (CVPR 2022), Zero-DCE (CVPR 2020), LLFormer (AAAI 2023),
-Diff-Retinex (ICCV 2023) / GSAD (NeurIPS 2023), Li et al. LLIE survey (IEEE TPAMI).
+## Final results (all in results/*.csv)
+- Reproduction: released Retinexformer 25.15 dB LOL-v1 (paper 25.16), 25.67 dB LOL-v2-syn.
+- SNR-weighted loss: dark-30% PSNR 24.89 (control) -> 24.91 (SNR); 13/15 dark wins, one-sided sign p=0.004.
+- Self-ensemble (official 8-way TTA): 25.6693 -> 25.8269 dB LOL-v2-syn; 64/100 wins, sign p=0.0066.
+- Protocol: GSAD GT-brightness trick; 91/100 LOL-v2-real test images in LOL-v1 train; raw ExDark mAP50 0.662 > enhancers.
+- `scripts/check_numbers.py` verifies all decimal numbers in report/slides/README are traceable to CSVs.
+
+## Conventions
+- Output folder: `results/<method>/<dataset>/`; classical in `results/classical/<he|clahe|gamma>/<dataset>/`.
+- Dataset names: `LOLv1`, `LOLv2-real`, `LOLv2-syn`, `LIME`, `DICM`, `MEF`.
+- Dataset folder `data/` is gitignored; weights (`*.pth`) and zips are gitignored.
+- Working tree should stay clean; commit and push after every change.
+
+## Deliverables
+- `report/report.pdf` — IEEE two-column paper; source `report/main.tex`, `report/refs.bib`.
+  Build: `cd report && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex`.
+- `presentation/final.pptx` + `presentation/final.pdf` — built by `scripts/make_slides.py`.
+- `presentation/viva_prep.md` — slide-by-slide speaker notes and Q&A.
+- `notes/` — experiment log, findings, background (not submitted).
 
 ## Environment
-- MacBook (Apple Silicon). Conda env `llie` (Python 3.10). PyTorch MPS available (`True`).
-  Always `conda activate llie` and check the prompt shows `(llie)` before installing anything.
-- Heavy jobs (training, deep model inference) run on **Kaggle** GPU notebooks (~30 GPU h/week,
-  12 h session limit, outputs saved only via "Save Version"). One notebook per model.
-- Repo: `~/Desktop/low-light-enhancement-btp` (GitHub, pushed daily).
-
-## Repo structure and conventions
-```
-data/        # datasets — gitignored, never commit
-baselines/   # cloned code from other papers
-scripts/     # my scripts
-notebooks/   # Kaggle notebooks
-results/     # outputs: results/<method>/<dataset>/  + results/results.csv
-notes/       # paper notes, literature review, day plans
-```
-- `.gitignore` excludes `data/`, `*.pth`, `*.pt`, `*.zip`.
-- Output folder rule: `results/<method>/<dataset>/` (e.g. `results/zerodce/LOLv1/`).
-  Exception: classical methods live in `results/classical/<he|clahe|gamma>/<dataset>/`.
-- Dataset names used in tables: `LOLv1`, `LOLv2-real`, `LOLv2-syn`, `LIME`, `DICM`, `MEF`.
-
-## Datasets (structure follows Retinexformer README)
-- LOL-v1: `data/LOLv1/{Train,Test}/{input,target}` — 485 train / 15 test pairs
-- LOL-v2: `data/LOLv2/{Real_captured,Synthetic}/{Train,Test}/{Low,Normal}` — real 689/100, syn 900/100
-  (LOLv2-real files are named `low00690.png` / `normal00690.png`; `evaluate.py` strips the prefix to match.)
-- **LEAKAGE:** 91/100 LOLv2-real TEST images are identical to LOLv1 TRAIN images (checked 2026-10-06).
-  Never report a LOLv1-trained model on LOLv2-real as a real result (LLFormer row is marked INVALID).
-- Unpaired (NIQE only): `data/unpaired/{LIME,DICM,MEF}` — links in Retinexformer README
-- ExDark (detection, 12 classes, map to COCO ids, e.g. People→person, Motorbike→motorcycle, Table→dining table)
-
-## Existing scripts
-- `scripts/classical.py` — HE, CLAHE, gamma.
-  `python scripts/classical.py --input data/LOLv1/Test/input --dataset LOLv1`
-- `scripts/evaluate.py` — PSNR/SSIM/LPIPS (paired, `--gt`), NIQE (`--niqe`, uses pyiqa).
-  Appends/updates one row per method+dataset in `results/results.csv`; per-image scores in `results/per_image/`.
-  `python scripts/evaluate.py --pred results/classical/clahe/LOLv1 --gt data/LOLv1/Test/target --method CLAHE --dataset LOLv1`
-- `scripts/eval_all.sh` — runs classical + evaluate for every method × dataset that has outputs
-  (`--no-classical` to only evaluate).
-- `scripts/run_light_baselines.py --method zerodce|sci|llformer` — official weights, writes `results/<method>/<dataset>/`
-  and `results/timing.csv`. Repos cloned in `baselines/`. SCI uses `medium.pt`; LLFormer weights are LOL-v1-trained.
-- `scripts/retinexformer_infer.py --opt <yml> --weights <pth> --input --output [--method]` — any Retinexformer
-  checkpoint on any folder; architecture from yml `network_g`, pad = yml `val.window_size` (4, as official test);
-  appends speed + params to `results/speed.csv`. LOL sets use matching weights; LIME/DICM/MEF use `LOL_v1.pth`.
-- `scripts/exdark_to_yolo.py` → `data/exdark_yolo/raw/` (ExDark TEST split, 100/class, seed 0, ≤1024 px, COCO ids,
-  EXIF orientation NOT applied). `scripts/check_labels.py` → `results/figures/label_check/`.
-- `notebooks/gsad_test.ipynb` — GSAD on Kaggle; saves `noadjust/` (main) and `gtmean/` (authors' GT-brightness trick).
-- `scripts/import_released.py` — imports authors' released result images → `results/<method>_released/<dataset>/`.
-  Used for SNR-Aware (Retinexformer README "results of compared methods" Drive).
-- `notebooks/retinexformer_train.ipynb` — Kaggle training; auto-resumes if previous version output is attached.
-
-## Mac gotchas (8 GB Apple Silicon)
-- pyiqa NIQE needs float64 → MPS unsupported → `evaluate.py` runs NIQE on CPU.
-- LLFormer gives WRONG outputs on MPS (up to −2 dB PSNR) → runs on CPU (~17 s/image).
-- YOLOv8 gives WRONG results on MPS (100 raw ExDark imgs: mAP50 0.424 MPS vs 0.646 CPU) → `yolo_eval.py` uses CPU/CUDA.
-- Big images (LIME 2000×1500) swap the Mac → scripts call `torch.mps.empty_cache()` per image.
-- Mac timings are unreliable (swap) → measure speed for all methods on one Kaggle GPU later.
-- zsh does not word-split `$var` → loops using `set -- $e` must run under `bash`.
-- `ultralytics` (YOLOv8) pins numpy to 1.26.4 here (macOS excludes numpy 2.0–2.3.4; 2.3.5+ needs Python 3.11).
-  Verified 2026-10-07: all metrics identical after the downgrade. Don't "fix" the pip warning about opencv-headless.
-
-## Methods to compare
-Input (reference), HE, CLAHE, Gamma, Zero-DCE, SCI, SNR-Aware, LLFormer, Retinexformer (pretrained),
-Retinexformer (my training), one diffusion model (GSAD or Diff-Retinex), SNR-weighted loss + control,
-and SNR-guided attention + matched control.
-Metrics: PSNR, SSIM, LPIPS, NIQE, inference time, params/FLOPs, detection mAP@0.5 and mAP@0.5:0.95.
-
-## Retinexformer notes (Kaggle)
-- Setup: clone → `pip install einops gdown addict future lmdb natsort yacs yapf lpips thop timm` →
-  `python setup.py develop --no_cuda_ext`. Kaggle uses PyTorch 2 (paper used 1.11): small metric
-  differences are expected — mention in report.
-- Link data instead of editing configs: `ln -s /kaggle/input/<dataset>/LOLv1 data/LOLv1` (same for LOLv2).
-- Test: `python3 Enhancement/test_from_dataset.py --opt Options/RetinexFormer_LOL_v1.yml --weights pretrained_weights/LOL_v1.pth --dataset LOL_v1`
-- Train: `timeout 37800 python3 basicsr/train.py --opt Options/RetinexFormer_LOL_v1.yml`
-  (stops before Kaggle's 12 h limit so checkpoints are saved; resume next session via `resume_state` in the yml).
-- NEVER use `--GT_mean` for main numbers (uses ground-truth brightness; inflates PSNR).
-- Fallback if SNR-Aware/LLFormer won't install (2 h / 1 h limit): use baseline results shared in the
-  Retinexformer README Google Drive, evaluate with my script, label "results released by authors".
-
-## 3-day coding plan
-Full Day 1 plan: `notes/day1_plan.md`.
-**Day 1 — baselines + start training:** launch Retinexformer training on Kaggle first; classical baselines +
-evaluate on all LOL sets and unpaired sets; run Zero-DCE, SCI, SNR-Aware, LLFormer, pretrained Retinexformer;
-evaluate everything; sanity-check against paper numbers; commit.
-**Day 2 — diffusion + detection:** resume training; run GSAD or Diff-Retinex (record time/image);
-convert ExDark to YOLO format (1,000+ images), run YOLOv8 on raw vs each enhanced version, record mAP.
-**Day 3 — contribution + figures:** evaluate my trained Retinexformer; SNR-weighted loss (SNR map as in
-SNR-Aware: blur input, noise = |input − blurred|, SNR = blurred / noise; upweight low-SNR regions);
-fine-tune control (original loss) and mine for the SAME iterations from pretrained weights; optional FFT-loss
-variant (ablation). Figures: comparison grids, failure-case crops, loss curves, PSNR/SSIM bars,
-quality-vs-speed plot, detection examples. Clean README.
-
-Fallback order if behind: drop diffusion → second loss variant → full-size ExDark. Everything else is core.
-
-## Current status (2026-11-22) — GT-Mean positive result added; Kaggle fine-tune gate planned
-- Report: `report/report.pdf` (IEEE two-column, 9 pp; source `report/main.tex`, `refs.bib` = 28 refs verified via
-  Crossref/arXiv/official pages; tables from `scripts/make_latex_tables.py`; Overleaf zip `report/overleaf_report.zip`).
-  Build locally: `~/Library/TinyTeX/bin/universal-darwin/pdflatex` (+ bibtex) in `report/`.
-- Slides: `presentation/final.pptx` (+ .pdf), 22 slides with speaker notes, built by `scripts/make_slides.py`
-  (numbers read from CSVs). Render check: LibreOffice (`/Applications/LibreOffice.app`).
-- Viva: `presentation/viva_prep.md` (20 Q&A), `report/section_summaries.md`.
-- `scripts/check_numbers.py`: 645 decimal numbers in report/slides/README all traceable to `results/*.csv`.
-- Title details filled: Dhirendra Pratap Singh (2301EE49), supervisor Dr. Rajib Kumar Jha (no date, by choice).
-- Key results: Retinexformer released 25.15 dB LOL-v1 (paper 25.16); re-trained 23.10 (GitHub #132: 23.45);
-  GSAD 22.73 real vs 27.57 with GT-brightness trick; LOL-v2-real test ∩ LOL-v1 train = 91/100; detection raw 0.662 >
-  every enhancer; SNR loss B vs A: +0.01 dB overall, dark regions 13/15 wins (p=0.004) but +0.01–0.05 dB → negligible.
-- Verified paper-reported numbers: `results/reported_in_papers.csv` (Retinexformer, SNR-Aware, LLFormer exact; GSAD w/ GT trick).
-- SNR-guided attention is **finished**: parameter-free gate in `scripts/snr_guidance.py`, 12-run sweep
-  (control 23.7666 / alpha 4 23.7365 mean val PSNR), matched 150k from-scratch runs, held-out test evaluated once.
-  Control beats guided by 0.3816 dB overall (25.2136 vs 24.8320) and 0.1241 dB in dark regions (26.3229 vs 26.1988);
-  guided wins 46/100 and 53/100 (sign test p=0.4841 / 0.6173). Final negative result; all numbers in
-  `results/snr_attention.csv`, `results/results.csv`, `results/dark_region.csv` and per-image CSVs.
-- Imported outputs: `notebooks/snr_attention_resume.ipynb` (resume from early stop), `notebooks/snr_attention_evaluate.ipynb` (last resume
-  + test eval), `runs/snr_attention/final/*` configs/logs. YOLOv8 detector fine-tuning on enhanced ExDark was dropped
-  for GPU quota — do not claim it was run.
-- Report/slides/viva must reflect the final negative result (see `notes/contribution_findings.md`).
-- **Test-time ensembling positive result (2026-11-22):** downloaded authors' released weights (ICCV 2025, arXiv:2507.20148),
-  evaluated with OUR protocol. LOL-v2-syn: official 25.6693/0.9282/0.0592 → GT-Mean 25.8195 → GT-Mean + 8-way
-  self-ensemble 25.9080/0.9405/0.0486. TTA wins 62/100 (sign p=0.021); vs official mean +0.2387 dB (57/100, p=0.193,
-  not individually significant). LOL-v1 worse (24.5398 vs 25.1532), so claim only on v2-syn. `scripts/losses.py`
-  has `gtmean_loss()`, `finetune.py --loss gtmean`, `retinexformer_infer.py --self-ensemble`. See `notes/gtmean_finding.md`.
-  Fair comparison done: TTA alone on official +0.1576 dB, 64/100, sign p=0.0066 (reliable, no training);
-  GT-Mean+TTA vs official+TTA only +0.0811 dB, 55/100, p=0.368 (not significant). GT-Mean does not transfer to
-  LOL-v1/v2-real. Report/slides/viva lead with TTA. Day 2 notebook `notebooks/gtmean_day2_gate_kaggle.ipynb`
-  tests GTmean-vs-L1 fine-tuning on validation with a >0.1 dB gate. RESULT: GATE FAILED — L1 28.2212 dB vs
-  GTmean 28.2272 dB, gain +0.0060 dB (GTmean lost in 2/3 seeds; `results/gtmean_gate.csv`). Per the pre-agreed rule,
-  stop: no longer run, no sigma tuning, no test peeking. Final paper stands with the significant self-ensemble result.
+- Mac (Apple Silicon), conda env `llie`, Python 3.10. Always `conda activate llie`.
+- Heavy jobs ran on Kaggle GPUs. Mac gotchas: NIQE on CPU; large images need `torch.mps.empty_cache()`.

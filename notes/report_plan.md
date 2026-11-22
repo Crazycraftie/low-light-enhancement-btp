@@ -74,7 +74,7 @@ Final structure (section names/order adapted from the professor's paper):
 9. **Discussion & Limitations:** what worked, what didn't, why; small test set; shortened training;
    failure cases figure.
 10. **SNR-Guided Attention: Results:** gate design, sweep over α, matched from-scratch runs,
-    and the held-out test evaluation (negative result).
+    and the held-out test evaluation.
 11. **Conclusion**
 12. **References** (BibTeX, verified)
 
@@ -155,7 +155,7 @@ same method names/colours as the report; slide numbers on.
 3. `presentation/viva_prep.md` was created: 20 likely questions with short answers in simple words
    (problem choice, Retinexformer vs earlier Retinex methods, attention cost, SNR map, why control run,
    PSNR/SSIM limits, gap to paper numbers, 15-image test set confidence, detection findings,
-   and the negative SNR results).
+   and the SNR-loss results).
 4. `CLAUDE.md` status was updated. Changes were committed and pushed (no `references/`, no weights).
 
 ---

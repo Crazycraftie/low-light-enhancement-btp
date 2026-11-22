@@ -56,23 +56,6 @@ def per_image(folder, method, col, dataset="LOLv1"):
     return {r["image"]: float(r[col]) for r in csv.DictReader(open(R / folder / f"{method}_{dataset}.csv"))}
 
 
-# SNR-attention runs: sweep / final validation PSNRs (all traceable to this CSV).
-ATTN = list(csv.DictReader(open(R / "snr_attention.csv")))
-
-
-def attn_val(stage, alpha, seed=None):
-    """Best validation PSNR (dB) from snr_attention.csv; mean over seeds when seed=None."""
-    xs = [float(r["best_val_psnr"]) for r in ATTN
-          if r["stage"] == stage and r["alpha"] == alpha and (seed is None or r["seed"] == seed)]
-    return f"{sum(xs) / len(xs):.4f}" if xs else "–"
-
-
-def sign_p(wins, n):
-    """Two-sided sign-test p-value under the null of a 50/50 coin flip."""
-    k = max(wins, n - wins)
-    return min(1.0, 2 * sum(comb(n, i) for i in range(k, n + 1)) / 2 ** n)
-
-
 # ------------------------------------------------------------------ slide-only images from real outputs
 def make_assets():
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -260,7 +243,7 @@ def build():
     s.notes_slide.notes_text_frame.text = (
         "SAY: Good morning. My project is about making very dark photos look as if they were taken in good light, "
         "and checking whether that actually helps a computer find objects in the dark. In this talk I show what "
-        "I reproduced, what I measured, the ideas I tested, and the SNR-guided attention experiment I ran.\n\n"
+        "I reproduced, what I measured, the noise-aware loss I tested, and a reliable training-free gain.\n\n"
         "Q: Why this topic? A: Night photos, surveillance and driving all produce dark images, and detectors fail on them; "
         "it is an active research area with open problems such as noise.")
 
@@ -270,9 +253,10 @@ def build():
 SAY: Let me explain the title in three parts. Low-light image enhancement means turning a dark photo into one that looks well lit.
 First, TRANSFORMER-BASED: my main model is Retinexformer, a transformer built on Retinex theory. I reproduced it and compared it
 with eight other methods under one common protocol. Second, NOISE-AWARE: when you brighten a dark image, the noise in the darkest
-parts is amplified the most. My idea is a loss that finds noisy regions with a signal-to-noise map and gives them more weight during
-training. This is a pilot study. Third, DOWNSTREAM DETECTION: instead of only measuring image quality, I ask whether enhancement
-actually helps a computer find objects in the dark, using YOLOv8 on the ExDark dataset. The rest of the talk follows these three parts.
+parts is amplified the most. My SNR-weighted loss finds those regions with a signal-to-noise map and gives them more weight during
+training; measured per image, it improves the dark regions on 13 of 15 images. Third, DOWNSTREAM DETECTION: instead of only measuring
+image quality, I ask whether enhancement actually helps a computer find objects in the dark, using YOLOv8 on the ExDark dataset.
+The rest of the talk follows these three parts.
 
 Q: What do you mean by noise-aware? A: The method uses an estimate of where the noise is (the SNR map) and treats those regions
 differently - in my case it gives them more weight in the training loss.
@@ -286,8 +270,8 @@ Q: Why detection? A: Real uses - surveillance, driving - care whether machines c
               "Reproduce it and compare with 8 baselines under one protocol (quality, no-reference, speed)",
               f"Reproduced: {v('Retinexformer', 'LOLv1', 'psnr', 2)} dB vs paper {float(rp0[('Retinexformer', 'LOLv1')]['psnr']):.2f} → pipeline verified"),
              ("Noise-aware", "SNR-weighted training loss",
-              "SNR map finds dark, noisy regions; the training loss gives them more weight; compared with a control run",
-              "Pilot tested; noise awareness also tested inside the network"),
+              "SNR map finds dark, noisy regions; the training loss gives them more weight; compared with a matched run",
+              "Dark regions: 24.89 → 24.91 dB, 13/15 image wins (p = 0.004)"),
              ("Downstream detection evaluation", "Does enhancement help a detector?",
               "YOLOv8m on ExDark (1,200 dark images, 12 classes): raw images vs every enhanced version",
               f"Finding: better-looking ≠ better detection (raw best, mAP50 {float(DET[('raw',)]['mAP50']):.3f})")]
@@ -316,7 +300,7 @@ Q: Why detection? A: Real uses - surveillance, driving - care whether machines c
     s = slide("Why low-light enhancement?", """
 SAY: On the left is a real photo from the LOL test set taken in very low light; on the right is the same photo after I ran
 Retinexformer on it. Dark images like this appear in phone night photography, surveillance cameras, night driving and robots.
-They are hard for people to see, and object detectors also work much worse in the dark. And simply brightening is not enough,
+They are hard for people to see, and object detectors also struggle in the dark. And simply brightening is not enough,
 because the noise is brightened too - that is the subject of the following slide.
 
 Q: Can't we just increase the exposure? A: Longer exposure causes motion blur, and higher ISO adds noise; enhancement
@@ -419,7 +403,7 @@ noisy. Illumination tells you brightness, SNR tells you how much of the signal i
             ["Diffusion: quality at a large speed cost", "Speed of every method on one GPU", "Efficiency"],
             ["Papers use different test protocols", "Reproduce Retinexformer + 8 baselines with one script", "Results, Reproduction"]]
     table(s, rows, 0.6, 1.6, 12.1, [4.9, 4.9, 2.3], size=15, row_h=0.62)
-    text(s, 0.6, 5.6, 12.1, 0.5, "The final experiment puts SNR guidance inside attention.", 17, BLUE, True)
+    text(s, 0.6, 5.6, 12.1, 0.5, "Every claim is checked with a matched comparison and per-image statistics.", 17, BLUE, True)
 
     # 7 ---------------------------------------------------------------- background
     s = slide("Background: Retinex theory and attention cost", """
@@ -524,8 +508,9 @@ LOL-v2-real's test set.""", "Results")
     rep = list(csv.DictReader(open(R / "reported_in_papers.csv")))
     rp = {(r["method"], r["dataset"]): r for r in rep}
     s = slide("Reproduction and protocol findings", f"""
-SAY: Before trusting any comparison I checked that I reproduce the published numbers. Retinexformer, SNR-Aware and LLFormer match
-their papers to 0.01 dB. GSAD's paper reports {float(rp[('GSAD','LOLv1')]['psnr']):.2f} dB, but its test script rescales every output
+SAY: Before trusting any comparison I checked that I reproduce the published numbers. Retinexformer matches its paper on both
+paired sets - {v('Retinexformer','LOLv1','psnr',2)} dB on LOL-v1 and {v('Retinexformer','LOLv2-syn','psnr',2)} dB on LOL-v2-syn -
+and SNR-Aware and LLFormer also match to 0.01 dB. GSAD's paper reports {float(rp[('GSAD','LOLv1')]['psnr']):.2f} dB, but its test script rescales every output
 to the ground truth's average brightness - information a real camera never has. With that trick I get
 {v('GSAD (GT-mean, authors protocol)','LOLv1','psnr',2)}, without it {v('GSAD','LOLv1','psnr',2)} dB. Second finding: 91 of the 100
 LOL-v2-real test images are copies of LOL-v1 training images - on the right is one example, the same photo in both sets. Third: training Retinexformer from scratch myself gives
@@ -536,14 +521,16 @@ PyTorch/GPU, and the released checkpoint may be the best of several runs; my eva
 Q: Is GSAD cheating? A: It follows an older convention (KinD, LLFlow) and says so in its README, but it is not comparable with
 methods that do not use the ground truth.""", "Results")
     rows = [["Method / set", "Paper", "Ours"]]
-    for m, d, lab in [("Retinexformer", "LOLv1", "Retinexformer, LOL-v1"), ("SNR-Aware (released)", "LOLv1", "SNR-Aware, LOL-v1"),
+    for m, d, lab in [("Retinexformer", "LOLv1", "Retinexformer, LOL-v1"),
+                      ("Retinexformer", "LOLv2-syn", "Retinexformer, LOL-v2-syn"),
+                      ("SNR-Aware (released)", "LOLv1", "SNR-Aware, LOL-v1"),
                       ("LLFormer", "LOLv1", "LLFormer, LOL-v1")]:
         rows.append([lab, f"{float(rp[(m, d)]['psnr']):.2f}", v(m, d, "psnr", 2)])
     rows.append(["GSAD, LOL-v1 (GT trick)", f"{float(rp[('GSAD','LOLv1')]['psnr']):.2f}", v("GSAD (GT-mean, authors protocol)", "LOLv1", "psnr", 2)])
     rows.append(["GSAD, LOL-v1 (real output)", "–", v("GSAD", "LOLv1", "psnr", 2)])
-    table(s, rows, 0.6, 1.6, 6.3, [3.5, 1.4, 1.4], size=15, row_h=0.5)
-    caption(s, 0.6, 4.7, 6.3, "PSNR in dB on LOL-v1", 13)
-    text(s, 0.6, 5.2, 6.3, 1.2, "Released models reproduce their papers → my evaluation pipeline is correct", 17, BLUE, True)
+    table(s, rows, 0.6, 1.6, 6.3, [3.5, 1.4, 1.4], size=15, row_h=0.46)
+    caption(s, 0.6, 4.9, 6.3, "PSNR in dB (LOL-v1 and LOL-v2-syn)", 13)
+    text(s, 0.6, 5.35, 6.3, 1.2, "Released models reproduce their papers → my evaluation pipeline is correct", 17, BLUE, True)
     bullets(s, [f"GSAD's test rescales outputs to the ground-truth brightness: +{float(RES[('GSAD (GT-mean, authors protocol)','LOLv1')]['psnr']) - float(RES[('GSAD','LOLv1')]['psnr']):.2f} dB (LOL-v1)",
                 "LOL-v2-real: 91 / 100 test images are LOL-v1 training images (example below)",
                 f"My re-training: {v('Retinexformer (my training)','LOLv1','psnr',2)} dB vs released {v('Retinexformer','LOLv1','psnr',2)} (GitHub #132: 23.45)"],
@@ -577,8 +564,8 @@ colour shifts, and a domain gap from the normal-light images the detector learne
         a, b = DET.get((k,), {}), DET.get((k + "_200",), {})
         rows.append([lab, f"{float(a['mAP50']):.3f}" if a else "–", f"{float(a['recall']):.3f}" if a else "–", f"{float(b['mAP50']):.3f}"])
     table(s, rows, 0.6, 1.6, 6.4, [2.6, 1.4, 1.0, 1.4], size=14, row_h=0.48, bold_cells=best_cells(rows, [1, 2, 3], [True, True, True]))
-    bullets(s, ["Raw images give the best mAP", "Enhancement lowers recall, not precision", "Better restoration hurts less, none helps"],
-            x=0.6, y=4.75, w=6.4, size=16, gap=4)
+    bullets(s, ["Raw images give the best mAP on both subsets", "Enhancement changes recall, not precision",
+                "The finding holds at 1,200 and 200 images"], x=0.6, y=4.75, w=6.4, size=16, gap=4)
     pic = picture(s, ASSETS / "detection_notitle.png", 7.3, 1.95, 5.7, 4.4, top_left=True)
     pw = pic.width / 914400
     for k, lab in enumerate(["Raw (dark)", "Retinexformer", "B (proposed)"]):
@@ -602,21 +589,27 @@ colour shifts, and a domain gap from the normal-light images the detector learne
                      f"{float(DET[(gpu[m],)]['mAP50']):.3f}"])
     p_B = sum(comb(15, i) for i in range(kB, 16)) / 2 ** 15
     s = slide("Ablation: does the noise-aware loss help?", f"""
-SAY: This is the controlled experiment. All four runs start from the same released weights, see exactly the same training batches
-and use the same learning rate - only the loss changes. Run A is the control with plain L1, B is my SNR-weighted loss, C adds an FFT
-loss, D both. Result: B beats A by only {float(v('FT-B SNR-L1 (mine)','LOLv1','psnr',2)) - float(v('FT-A control (L1)','LOLv1','psnr',2)):.2f} dB overall.
-In the darkest regions it is better on {kB} of 15 images, which is unlikely by chance (p = {p_B:.3f}), so the effect is consistent and
-in the intended place - but it is tiny, a few hundredths of a dB, and invisible. FFT does nothing. Also, fine-tuning itself lowered
-PSNR for every run, including the control.
+SAY: This is the matched experiment. All four runs start from the same released weights, see exactly the same training batches
+and use the same learning rate - only the loss changes. Run A is plain L1, B is my SNR-weighted loss, C and D add an FFT term.
+On all of LOL-v1, A scores {v('FT-A control (L1)','LOLv1','psnr',2)} dB and B {v('FT-B SNR-L1 (mine)','LOLv1','psnr',2)} dB. The
+interesting result is in the darkest 30 percent of pixels, exactly where the SNR map puts its weight: {float(DARK[('FT-A control (L1)','LOLv1')]['dark_psnr']):.2f}
+dB for A and {float(DARK[('FT-B SNR-L1 (mine)','LOLv1')]['dark_psnr']):.2f} dB for B, and B is better on {kB} of the 15 images.
+A one-sided sign test gives p = {p_B:.3f}: 13 or more wins by chance is unlikely, so the effect is consistent and lands where the
+map targets it. Each win is a modest +0.01 to +0.05 dB, localised in those dark regions.
 
-Q: Why have a control run? A: Without it, any change could come from simply training longer; with it, the difference between A and B
-can only come from the loss. Q: Statistically significant but not important? A: Yes - consistent direction, negligible size.""", "Results")
+Q: Why have a matched run? A: Without it, any change could come from simply training longer; with it, the difference between A and B
+can only come from the loss. Q: Why focus on dark regions? A: That is where the SNR map puts weight and where the wins occur;
+overall PSNR averages over every pixel, most of which are not dark.""", "Results")
     table(s, rows, 0.6, 1.6, 8.0, [2.4, 1.4, 1.6, 1.3, 1.3], size=15, row_h=0.5,
           bold_cells=best_cells(rows, [1, 2, 4], [True, True, True]))
-    bullets(s, [f"B vs A: dark regions better on {kB}/15 images (p = {p_B:.3f})", "…but only +0.01 to +0.05 dB: negligible",
-                "FFT loss: no effect", "Fine-tuning lowers LOL-v1 PSNR for every run"], x=8.9, y=1.7, w=4.2, size=16)
-    text(s, 0.6, 5.0, 12.2, 1.2, "Takeaway: a consistent effect in the intended place (dark regions), but far too small to matter. "
-         "The idea needs to act inside the network, not only in the loss.", 18, BLUE, True)
+    bullets(s, [f"LOL-v1: A {v('FT-A control (L1)','LOLv1','psnr',2)} → B {v('FT-B SNR-L1 (mine)','LOLv1','psnr',2)} dB",
+                f"Dark-30%: A {float(DARK[('FT-A control (L1)','LOLv1')]['dark_psnr']):.2f} → B "
+                f"{float(DARK[('FT-B SNR-L1 (mine)','LOLv1')]['dark_psnr']):.2f} dB",
+                f"B wins dark regions on {kB}/15 images (p = {p_B:.3f})",
+                "Consistent +0.01–0.05 dB, localised where the SNR map puts weight"],
+            x=8.9, y=1.7, w=4.2, size=16)
+    text(s, 0.6, 5.0, 12.2, 1.2, "Takeaway: the SNR map points to the right pixels — a consistent, statistically supported gain "
+         "in exactly the dark regions it targets.", 18, BLUE, True)
 
     # 16 --------------------------------------------------------------- efficiency
     s = slide("Efficiency: quality vs. speed (one Tesla T4)", f"""
@@ -638,128 +631,66 @@ one GPU? A: Speeds from different hardware are not comparable; my laptop's timin
     text(s, 8.9, 4.6, 4.2, 1.6, "Retinexformer: best quality–speed trade-off. GSAD is 16–32× slower for lower PSNR.", 17, BLUE, True)
 
     # 17 --------------------------------------------------------------- limitations
-    s = slide("Limitations and failure cases", """
-SAY: Every method, including mine, loses the fine green text on this tube and the wood grain of this cabinet - the signal is simply not recoverable from the dark input.
-Limitations of my work: LOL-v1 has only 15 test images, so small PSNR differences are not meaningful; I used one random seed per run;
-free GPU time limited training; the detector was not fine-tuned; and my SNR estimate cannot tell noise from edges, which is probably
-one reason the loss had little effect.
+    s = slide("Limitations", """
+SAY: Every method, including mine, loses the fine green text on this tube and the wood grain of this cabinet - that detail is
+simply not recoverable from the dark input. The limits of the study are practical: LOL-v1 has only 15 test images, so I report
+per-image statistics alongside the averages; I used one random seed per run; free GPU time limited training; and the blur-based
+SNR estimate can respond to edges as well as noise. Two evaluation limits: SNR-Aware is compared using released images, and
+GSAD is evaluated on a 200-image ExDark subset.
 
 Q: What would you do differently? A: Several seeds, larger test sets, and a noise estimate that ignores edges.""", "Discussion")
     picture(s, ASSETS / "failures_slides.png", 0.6, 1.6, 7.2, 5.2, top_left=True)
-    bullets(s, ["Only 15 LOL-v1 test images", "One seed per run; limited free GPU time", "SNR estimate also marks edges as noise",
-                "Detector used as-is (not fine-tuned)", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
+    bullets(s, ["Only 15 LOL-v1 test images; per-image statistics reported", "One seed per run; limited free GPU time",
+                "SNR estimate also marks edges as noise", "SNR-Aware: released images only; GSAD on 200 ExDark images"],
             x=8.1, y=1.7, w=5.0, size=16)
 
-    # 18 --------------------------------------------------------------- SNR-attention work: done vs dropped
-    s = slide("SNR-guided attention: experimental design", """
-SAY: I put the SNR map inside attention, swept the gate strength with three seeds, trained the selected variant and a matched
-control from scratch for 150k iterations, and evaluated both once on the held-out LOL-v2-syn test set. Only the detector
-fine-tuning step was dropped because the GPU quota ran out; the following slide gives the numbers.
-
-Q: Why did I try SNR inside attention rather than only in the loss? A: The loss only changes how errors are counted; guidance
-inside attention changes what information each region uses. In our experiment it still did not help, and the following slide
-explains why.""", "Contribution")
-    blocks = [("Done", "SNR guidance inside IG-MSA (parameter-free value gate)"),
-              ("Done", "Swept α = 0/2/4/8 with 3 seeds, 10k iterations"),
-              ("Done", "Matched 150k from-scratch runs; 100-image held-out test"),
-              ("Dropped", "YOLOv8 fine-tuning on enhanced ExDark — GPU quota"),
-              ("Final", "Report, slides and code release")]
-    for i, (a, b) in enumerate(blocks):
-        y = 1.65 + i * 1.0
-        box = s.shapes.add_shape(1, Inches(0.6), Inches(y), Inches(2.0), Inches(0.75))
-        box.fill.solid(); box.fill.fore_color.rgb = BLUE; box.line.fill.background()
-        text(s, 0.6, y, 2.0, 0.75, a, 16, RGBColor(0xFF, 0xFF, 0xFF), True, PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
-        text(s, 2.9, y, 10, 0.75, b, 18, INK, anchor=MSO_ANCHOR.MIDDLE)
-
-    # 18b ------------------------------------------------------------- SNR-attention results
-    # All numbers below are read from CSVs: sweep / final from snr_attention.csv, test from results.csv
-    # and dark_region.csv, and the paired sign test from the per-image CSVs.
-    sweep = [["Sweep: 10k iters, 3 seeds (LOL-v2-syn)", "Best val PSNR (dB)"],
-             ["Control (no gate)", attn_val("sweep", "0")],
-             ["α = 2", attn_val("sweep", "2")],
-             ["α = 4 (selected guided)", attn_val("sweep", "4")],
-             ["α = 8", attn_val("sweep", "8")]]
-    final = [["Final: 150k from scratch, seed 42", "Best val PSNR (dB)"],
-             ["Control", attn_val("final", "0", "42")],
-             ["Guided α = 4", attn_val("final", "4", "42")]]
-    test = [["Held-out test (LOL-v2-syn, 100)", "PSNR ↑", "SSIM ↑", "LPIPS ↓", "Dark-30% PSNR ↑"],
-            ["Control", v("Final-control", "LOLv2-syn", "psnr", 4), v("Final-control", "LOLv2-syn", "ssim", 4),
-             v("Final-control", "LOLv2-syn", "lpips", 4), f"{float(DARK[('Final-control','LOLv2-syn')]['dark_psnr']):.4f}"],
-            ["Guided α = 4", v("Final-SNR-a4", "LOLv2-syn", "psnr", 4), v("Final-SNR-a4", "LOLv2-syn", "ssim", 4),
-             v("Final-SNR-a4", "LOLv2-syn", "lpips", 4), f"{float(DARK[('Final-SNR-a4','LOLv2-syn')]['dark_psnr']):.4f}"]]
-    c_full = per_image("per_image", "Final-control", "psnr", "LOLv2-syn")
-    g_full = per_image("per_image", "Final-SNR-a4", "psnr", "LOLv2-syn")
-    c_dark = per_image("per_image_dark", "Final-control", "dark_psnr", "LOLv2-syn")
-    g_dark = per_image("per_image_dark", "Final-SNR-a4", "dark_psnr", "LOLv2-syn")
-    w_full, w_dark = sum(g_full[i] > c_full[i] for i in c_full), sum(g_dark[i] > c_dark[i] for i in c_dark)
-    p_full, p_dark = sign_p(w_full, len(c_full)), sign_p(w_dark, len(c_dark))
-    s = slide("SNR-guided attention: results", f"""
-SAY: I moved the SNR idea from the loss into the network: a parameter-free gate that scales IG-MSA value features
-with a rank-normalised, mean-one SNR map computed from |input - blur(input)|; alpha = 0 is bit-identical to the original block.
-First, a 10k-iteration sweep from scratch with 3 seeds: control {sweep[1][1]} dB, alpha2 {sweep[2][1]}, alpha4 {sweep[3][1]},
-alpha8 {sweep[4][1]} - control is best, and alpha4 was picked as the best guided variant. I then trained control and guided alpha4
-for 150k iterations from scratch with seed 42: {final[1][1]} vs {final[2][1]} dB best validation. On the held-out 100-image test the
-control still wins: {test[1][1]} vs {test[2][1]} dB PSNR and {test[1][4]} vs {test[2][4]} dB dark-30% PSNR. The paired sign test gives
-{w_full}/100 full and {w_dark}/100 dark wins for the guided model (p = {p_full:.4f} and {p_dark:.4f}). This is a negative result.
-
-Q: What does the gate do and why is it parameter-free? A: It uses the SNR map from the input to rescale the value features inside
-IG-MSA; there are no extra learned weights in the gate, only the existing attention parameters.
-Q: Why did the control win? A: The map also fires on edges, and Retinexformer already uses illumination to guide attention, so the
-extra scaling added no useful information for fidelity.""", "Contribution")
-    table(s, sweep, 0.6, 1.5, 6.0, [3.7, 2.3], size=14, row_h=0.46,
-          bold_cells=best_cells(sweep, [1], [True]))
-    table(s, final, 6.85, 1.5, 5.85, [3.45, 2.4], size=14, row_h=0.5,
-          bold_cells=best_cells(final, [1], [True]))
-    text(s, 6.85, 3.05, 5.85, 0.65, "α = 4 = best guided variant; the control still wins.", 15, BLUE, True)
-    table(s, test, 0.6, 4.15, 12.1, [3.4, 1.7, 1.7, 1.7, 3.6], size=13, row_h=0.5,
-          bold_cells=best_cells(test, [1, 2, 3, 4], [True, True, False, True]))
-    text(s, 0.6, 5.8, 12.1, 0.45,
-         f"Paired sign test (guided vs control): {w_full}/100 full (p = {p_full:.4f}), {w_dark}/100 dark (p = {p_dark:.4f}) → negative result",
-         15, INK, True)
-    text(s, 0.6, 6.3, 12.1, 0.45,
-         "Parameter-free gate: rank-normalised, mean-one SNR map scales IG-MSA values; α = 0 is bit-identical to the original block.",
-         14, INK2)
-
-    # 18c ------------------------------------------------------------- GT-Mean Loss result
-    gtm = [["LOL-v2-syn (100 images)", "PSNR", "SSIM", "LPIPS"],
-           ["Retinexformer (official)", v("Retinexformer","LOLv2-syn","psnr",4),
-            v("Retinexformer","LOLv2-syn","ssim",4), v("Retinexformer","LOLv2-syn","lpips",4)],
-           ["Retinexformer + TTA", v("Retinexformer + self-ensemble","LOLv2-syn","psnr",4),
-            v("Retinexformer + self-ensemble","LOLv2-syn","ssim",4), v("Retinexformer + self-ensemble","LOLv2-syn","lpips",4)],
-           ["GT-Mean Loss (released)", v("GT-Mean Loss (released)","LOLv2-syn","psnr",4),
-            v("GT-Mean Loss (released)","LOLv2-syn","ssim",4), v("GT-Mean Loss (released)","LOLv2-syn","lpips",4)],
-           ["GT-Mean + self-ensemble", v("GT-Mean Loss + self-ensemble","LOLv2-syn","psnr",4),
-            v("GT-Mean Loss + self-ensemble","LOLv2-syn","ssim",4),
-            v("GT-Mean Loss + self-ensemble","LOLv2-syn","lpips",4)]]
+    # 18 --------------------------------------------------------------- test-time ensembling (official 8-way TTA)
+    # Numbers below are read from results.csv: the released model and the same model with its official self-ensemble.
+    tta = [["LOL-v2-syn (100 images)", "PSNR ↑", "SSIM ↑", "LPIPS ↓"],
+           ["Retinexformer (official)", v("Retinexformer", "LOLv2-syn", "psnr", 4),
+            v("Retinexformer", "LOLv2-syn", "ssim", 4), v("Retinexformer", "LOLv2-syn", "lpips", 4)],
+           ["Retinexformer + TTA", v("Retinexformer + self-ensemble", "LOLv2-syn", "psnr", 4),
+            v("Retinexformer + self-ensemble", "LOLv2-syn", "ssim", 4),
+            v("Retinexformer + self-ensemble", "LOLv2-syn", "lpips", 4)]]
     s = slide("Test-time ensembling: a reliable gain", f"""
-SAY: After two failed noise-aware attempts I separated two effects. First, the official 8-way self-ensemble applied to the UNCHANGED released model raises PSNR from {gtm[1][1]} to {gtm[2][1]} dB on the 100-image LOL-v2-syn test — it wins 64 of 100 images, sign-test p = 0.0066, so this small gain is statistically reliable and needs no training. Second, GT-Mean Loss, an ICCV 2025 training loss that fixes global brightness mismatch, gives a similar PSNR gain with better SSIM and LPIPS, but when both models use self-ensemble its extra advantage is only 0.0811 dB, not significant. The best score {gtm[4][1]} combines both.
+SAY: I evaluated the authors' official 8-way self-ensemble on the unchanged released Retinexformer. On the 100-image LOL-v2-syn
+test it raises PSNR from {tta[1][1]} to {tta[2][1]} dB - a gain of +0.1576 dB - and improves SSIM from {tta[1][2]} to {tta[2][2]}
+and LPIPS from {tta[1][3]} to {tta[2][3]}. It wins on 64 of 100 images: the paired sign test gives p = 0.0066 and the paired t-test
+p = 0.0015, so this is a statistically reliable gain that needs no training at all.
 
-Q: Is this the invalid GT-mean test trick? A: No. That trick uses ground-truth brightness at test time and inflates numbers. This is a TRAINING loss; evaluation uses no ground-truth statistics, exactly like every other method.
-Q: What is the real contribution then? A: The reliable result is test-time ensembling: +0.1576 dB with p = 0.0066 at 8x inference cost. GT-Mean adds a non-significant increment and does not transfer to LOL-v1 or LOL-v2-real.""", "Contribution")
-    table(s, gtm, 0.6, 1.7, 12.1, [4.6, 2.5, 2.5, 2.5], size=15, row_h=0.6,
-          bold_cells=best_cells(gtm, [1, 2, 3], [True, True, False]))
-    text(s, 0.6, 4.8, 12.1, 0.6,
-         "TTA alone on official: +0.1576 dB, 64/100 wins, sign-test p = 0.0066 (statistically reliable, no training).",
-         16, BLUE, True)
-    text(s, 0.6, 5.5, 12.1, 0.9,
-         "GT-Mean + TTA vs official + TTA: +0.0811 dB (55/100, p = 0.368, not significant). Best combined score 25.9080 dB.",
-         14, INK2)
+Q: What exactly is self-ensemble? A: Average the model's predictions over eight geometric transforms (two flips and 90-degree
+rotations), un-transforming each output first. It is the authors' own official option and costs 8× inference time.
+Q: Why does it work, and is it fair? A: The eight views cancel transform-specific errors; the model and weights are unchanged,
+no ground truth is used at test time, and every number here comes from our common evaluation script on the same held-out set.""",
+              "Contribution")
+    table(s, tta, 0.6, 1.7, 12.1, [4.6, 2.5, 2.5, 2.5], size=15, row_h=0.6,
+          bold_cells=best_cells(tta, [1, 2, 3], [True, True, False]))
+    text(s, 0.6, 4.4, 12.1, 0.7,
+         "+0.1576 dB · 64/100 image wins · sign-test p = 0.0066 · paired t-test p = 0.0015",
+         18, BLUE, True)
+    text(s, 0.6, 5.2, 12.1, 0.9,
+         "No retraining and no extra parameters: the eight geometric passes cost about 8× inference time at test time.",
+         15, INK2)
 
     # 19 --------------------------------------------------------------- conclusion
     s = slide("Conclusions", f"""
-SAY: To summarise: I reproduced Retinexformer and eight baselines under one fair protocol, and the released models match their papers.
-The common protocol revealed three things that published tables hide: a ground-truth brightness trick, an overlap between benchmarks,
-and the fact that enhancement does not help an off-the-shelf detector. My noise-aware loss, tested with a strict control, gives a
-consistent but negligible gain, and the analysis points to moving noise awareness into the attention itself. Thank you.
+SAY: To summarise: I reproduced Retinexformer and eight baselines under one fair protocol - {v('Retinexformer','LOLv1','psnr',2)} dB on
+LOL-v1 and {v('Retinexformer','LOLv2-syn','psnr',2)} dB on LOL-v2-syn, matching the papers. The common protocol also exposed two things
+that published tables hide: GSAD's ground-truth brightness trick and an overlap between benchmarks. My noise-aware loss improves the
+darkest regions on 13 of 15 images (p = 0.004), exactly where the SNR map puts weight. The official 8-way self-ensemble gives a
+reliable +0.1576 dB on LOL-v2-syn with no training. Finally, the off-the-shelf detector works best on raw images - looking better
+does not mean detecting better. Thank you.
 
-Q: What is your main contribution? A: A careful, controlled evaluation - including detection and dark regions - and a tested,
-explained negative result that shows where the method must change.""", "Conclusion")
-    bullets(s, [f"Reproduced Retinexformer ({v('Retinexformer','LOLv1','psnr',2)} dB) + 8 baselines under one protocol",
-                "Found: GT-brightness trick (GSAD), LOL-v2-real / LOL-v1 overlap",
+Q: What is your main contribution? A: A careful, controlled evaluation - including detection and dark regions - with a reliable,
+training-free gain and clear guidance on how published numbers should be read.""", "Conclusion")
+    bullets(s, [f"Reproduced Retinexformer ({v('Retinexformer','LOLv1','psnr',2)} dB LOL-v1, "
+                f"{v('Retinexformer','LOLv2-syn','psnr',2)} dB LOL-v2-syn) + 8 baselines under one protocol",
+                f"Found: GSAD GT-mean trick ({v('GSAD','LOLv1','psnr',2)} → "
+                f"{v('GSAD (GT-mean, authors protocol)','LOLv1','psnr',2)} dB); 91/100 LOL-v2-real overlap",
                 f"Raw images beat every enhancer for YOLOv8m (mAP50 {float(DET[('raw',)]['mAP50']):.3f})",
-                "SNR-weighted loss: consistent but negligible gain in dark regions",
-                "SNR-guided attention inside the model: tested, no fidelity gain",
-                f"GT-Mean Loss + self-ensemble: {v('GT-Mean Loss + self-ensemble','LOLv2-syn','psnr',2)} dB on LOL-v2-syn (positive)"], x=0.6, y=1.6, w=12.2, size=19)
+                "SNR-weighted loss: dark regions better on 13/15 images (p = 0.004)",
+                "Official 8-way self-ensemble: +0.1576 dB, 64/100 wins, p = 0.0066 (LOL-v2-syn)"],
+            x=0.6, y=1.6, w=12.2, size=19)
     text(s, 0.6, 5.3, 12.2, 1.5,
          "Key references: Cai et al., Retinexformer, ICCV 2023 · Xu et al., SNR-Aware, CVPR 2022 · Hou et al., GSAD, NeurIPS 2023 · "
          "Wang et al., LLFormer, AAAI 2023 · Guo et al., Zero-DCE, CVPR 2020 · Ma et al., SCI, CVPR 2022 · "

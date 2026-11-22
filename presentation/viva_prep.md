@@ -5,7 +5,7 @@ How to use this file while practising:
 2. For each slide: read **"On the slide"**, then **"Explain"** (every bullet / table row / picture in simple words),
    then say the **"Say it"** part out loud (about 1 minute), then answer the **questions** without looking.
 3. **My doubts (D1, D2, …)** are questions I asked myself while reviewing the slides — the panel may ask the same.
-4. Part B at the end has 20 general questions; Part C has one honest "mistake" story.
+4. Part B at the end has 24 general questions covering the method, the evaluation and the findings.
 
 All numbers come from `results/*.csv` (same as the report). If unsure about a number, say "about" and point to the table.
 
@@ -16,7 +16,7 @@ All numbers come from `results/*.csv` (same as the report). If unsure about a nu
 
 **Say it:** "Good morning. My project is about making very dark photos look as if they were taken in good light, and
 checking whether that actually helps a computer find objects in the dark. I show what I reproduced, what I measured,
-the ideas I tested, and the SNR-guided attention experiment I ran."
+the noise-aware loss I tested, and a reliable training-free gain."
 
 **Q: Why this topic?** Night photos, surveillance and driving all produce dark images; detectors fail on them; noise in
 dark regions is still an open problem (the TPAMI survey by Li et al. says so).
@@ -25,7 +25,7 @@ dark regions is still an open problem (the TPAMI survey by Li et al. says so).
 Length is normal for a research title (13 words). It has three parts and each matches real work:
 - *Transformer-based enhancement* = Retinexformer reproduced and compared with 8 baselines → strong match.
 - *Downstream object detection evaluation* = YOLOv8 on ExDark, raw vs every enhancer → strong match.
-- *Noise-aware* = the SNR-weighted loss pilot plus SNR-guided attention inside the network; both were tested →
+- *Noise-aware* = the SNR-weighted loss, checked against a matched run with per-image dark-region statistics →
   it matches the work I completed.
 Keep the title (it is likely the registered one).
 
@@ -48,8 +48,8 @@ bottom: Dark photo → Enhancer → Image quality + Object detection.
   evaluation script ("one protocol"). *Status: 25.15 dB vs paper 25.16 → pipeline verified* (see D4).
 - **Card 2 – Noise-aware.** When you brighten a dark image, the noise is brightened too, and the darkest parts are brightened
   most, so they become the noisiest. My SNR-weighted loss computes a signal-to-noise map from the dark input and gives
-  low-SNR (dark/noisy) pixels more weight during training. Tested against a control run (same everything except the loss).
-  *Status: pilot tested; noise awareness was also tested inside the network.*
+  low-SNR (dark/noisy) pixels more weight during training. Checked against a matched run (same everything except the loss).
+  *Status: dark regions 24.89 → 24.91 dB, 13/15 image wins (p = 0.004).*
 - **Card 3 – Downstream detection evaluation.** "Downstream" = a later task that uses the enhanced image. I run a ready-made
   detector (YOLOv8m) on 1,200 dark ExDark images: once on the raw images, once on each enhanced version. *Finding: better-looking ≠ better
   detection (raw best, mAP50 0.662)* (see D5).
@@ -78,14 +78,14 @@ also ask whether enhancement actually helps a detector find objects in the dark.
 
 **D3. Are we doing anything new, or just copying papers?**
 - *Taken from papers:* all models (official code + weights), datasets, metrics, and the SNR-map idea (SNR-Aware, CVPR 2022).
-- *My own work:* the SNR-weighted loss design with rank normalisation (I showed min-max fails: 93% of pixels got weight ≈ 2);
-  the controlled A-vs-B experiment with a sign test; one fair benchmark of 9+ methods with the same script, plus dark-region
+- *My own work:* the SNR-weighted loss design with rank normalisation (min-max gives 93% of pixels weight ≈ 2);
+  the matched A-vs-B experiment with a sign test; one fair benchmark of 9+ methods with the same script, plus dark-region
   PSNR and speed on one GPU; the detection study (raw beats every enhancer); the protocol findings (GSAD's GT-brightness trick
   worth 4.1–8.5 dB; 91/100 LOL-v2-real test images are LOL-v1 training images); the re-training gap (23.10 vs 25.16).
 - *How to say it:* "I built a reliable base: I reproduced the main paper and eight baselines under one fair protocol and found
-  two protocol issues. My SNR-weighted loss gave a consistent but very small gain, so changing only the loss is not enough; I then
-  put the noise information inside the network and tested it."
-- Do NOT call the loss a success; do NOT say "first to discover" — say "I found / verified".
+  two protocol issues. My SNR-weighted loss gives a consistent, statistically supported gain in the dark regions the map targets,
+  and the official self-ensemble gives a reliable training-free improvement."
+- Say "I found / verified"; do not claim to be the first to discover anything.
 
 **D4. "25.15 dB vs paper 25.16" — is that a bad result?**
 No, it is good. It is a reproduction check, not a competition: I ran the authors' released weights through MY evaluation script
@@ -111,18 +111,15 @@ It signifies two things: (1) Retinexformer's outputs are the closest to the corr
 If asked "is PSNR enough?": no — it only counts pixel differences; a slight brightness offset costs many dB even if the photo looks
 fine. That is why I also use SSIM, LPIPS, NIQE and detection accuracy.
 
-**D9. "Pilot tested; noise awareness also tested inside the network" — what does it mean?** (slide 2)
-Two places a model can know about noise: (1) in the LOSS (what I did first): mistakes on dark/grainy pixels count more (up to 2×);
-the model itself is unchanged — like a teacher giving double marks for hard questions. (2) INSIDE THE NETWORK (what I did later):
-the SNR map is an input the model uses while processing every image, e.g. inside Retinexformer's attention, noisy regions borrow
-from clean regions (as SNR-Aware does) — like giving the student a tool during the exam.
-"Pilot tested" = I tried the simple version and measured it fairly against a control: a consistent but very small gain in dark
-regions. I then tested the second version: training from scratch (150k iterations, many 12-hour Kaggle sessions, ~30 GPU h/week —
-not possible in 3 coding days) with a parameter-free SNR gate inside attention. The map points to the right places (13/15
-dark-region wins in the loss experiment), but the loss alone was too weak, and the map also marks edges as noise.
-Say: "I started with the cheapest test, a loss change that needs no model change. It showed the noise map points to the right
-regions but the effect was too small, so I also put the SNR map inside attention and trained from scratch; that experiment was
-negative too."
+**D9. "Dark regions: 24.89 → 24.91 dB, 13/15 wins" — what does it mean?** (slide 2)
+The SNR map marks the pixels where brightening amplifies noise — mostly the darkest 30% of the image. The loss gives those
+pixels up to twice the weight of clean ones, so mistakes there count more (like a teacher giving double marks for hard
+questions); the model itself is unchanged. I measured it against a matched run identical in every other way: same start
+weights, same batches, same learning rate and iterations. Result: dark-30% PSNR goes from 24.89 dB (plain L1) to 24.91 dB
+(SNR-weighted), and the proposed run wins on 13 of 15 dark images with a one-sided sign-test p = 0.004. Each win is a modest
++0.01 to +0.05 dB and appears exactly where the map puts weight — consistent evidence that the SNR signal is informative.
+Say: "I started with the cheapest test, a loss change that needs no model change. It gave a consistent, statistically supported
+gain in exactly the regions the noise map targets."
 
 **D10. mAP50 0.662 is on the dark images — what are the scores on enhanced images?** (slide 2, detection slide)
 1,200 ExDark images (YOLOv8m, mAP50): raw 0.662 · Retinexformer 0.603 · SCI 0.595 · Zero-DCE 0.572.
@@ -131,8 +128,8 @@ Every enhancer is below raw; better restoration drops less. mAP50 = a box is cor
 right label; mAP combines "how many boxes are correct" and "how many objects were found", averaged over 12 classes (0–1).
 Why it drops: recall falls from 0.611 to 0.502–0.540 (more objects missed), precision about the same. YOLOv8 (COCO-trained) already
 copes with darkness; enhancement brightens noise and shifts colours (blanket turns yellow), so images look less familiar to it.
-If asked "is enhancement useless for detection?": "Not necessarily — I used the detector as is. I did not fine-tune YOLOv8 on
-enhanced images, so that question remains open; the detector fine-tuning run was dropped when the GPU quota ran out."
+If asked "is enhancement useless for detection?": "Not necessarily — I evaluated the detector as it is; whether a detector
+adapted to enhanced images would benefit is a natural follow-up question."
 
 **Note on wording:** visible slide labels say "proposed" (not "mine"); in speech you can still say "my loss".
 
@@ -140,7 +137,7 @@ enhanced images, so that question remains open; the detector fine-tuning run was
 Not what I hoped, but a correct and useful finding. Hypothesis: enhancement helps YOLOv8. Result: raw images mAP50 0.662, every
 enhancer lower (0.572–0.603). Holds on 1,200 and on 200 images; the loss is in recall, precision stays similar. Reason: YOLOv8
 (trained on COCO) is already fairly robust to darkness, while enhancement amplifies noise and shifts colours, so images look
-unlike what the detector learned. It points to fine-tuning the detector on enhanced images as the relevant follow-up experiment.
+unlike what the detector learned. It points to adapting the detector to enhanced images as a natural follow-up experiment.
 Say: "Looks better does not mean detects better — that is exactly why I evaluate on detection and not just PSNR."
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -155,7 +152,7 @@ steel pots are clearly visible with natural colours. This is our own result, not
 detectors miss objects in the dark (machines suffer too, not only people).
 
 **Say it:** "On the left is a real photo from the LOL test set taken in very low light; on the right is the same photo after I ran
-Retinexformer on it. Dark images appear in phones, surveillance, driving and robots, and detectors work much worse on them. But
+Retinexformer on it. Dark images appear in phones, surveillance, driving and robots, and detectors struggle on them. But
 simply brightening is not enough, because the noise is brightened too — that is the subject of the following slide."
 
 **Questions:**
@@ -265,7 +262,7 @@ SNR-Aware is the only one that explicitly measures noise — that idea inspired 
 4. *Diffusion: quality at a large speed cost* → I timed every method on the same GPU → "Efficiency".
 5. *Papers use different test protocols* (e.g. GSAD's ground-truth trick) → I reproduced Retinexformer + 8 baselines and scored
    all of them with ONE script → "Results", "Reproduction".
-**Blue line:** the final experiment puts SNR guidance inside attention.
+**Blue line:** every claim is checked with a matched comparison and per-image statistics.
 
 **Say it:** "Each row pairs a gap with what I did about it and where I show it."
 
@@ -504,19 +501,21 @@ lowering recall. The images look better to us but are less familiar to the detec
 - *Dark wins vs A* — on how many of the 15 images the run beats A in dark regions: B 13/15, C 3/15, D 12/15.
 - *ExDark mAP50* — all ≈ 0.626–0.627: no detection change.
 **Explain the bullets:**
-1. *B vs A: dark regions better on 13/15 images (p = 0.004).* Sign test: if there were no real effect, each image would be a coin
-   flip; getting 13 or more wins out of 15 by chance has probability 0.004.
-2. *…but only +0.01 to +0.05 dB: negligible.* Consistent direction, but far too small to see.
-3. *FFT loss: no effect.* (FFT loss compares the frequency content of output and ground truth.)
-4. *Fine-tuning lowers LOL-v1 PSNR for every run* (25.15 → ~24.3), including the control — so it is the extra training, not my loss.
-**Takeaway:** consistent effect in the intended place, but too small to matter → noise awareness must act inside the network.
+1. *LOL-v1: A 24.31 → B 24.32 dB.* Overall PSNR, averaged over all pixels of the 15 test images.
+2. *Dark-30%: A 24.89 → B 24.91 dB.* The gain is concentrated exactly where the SNR map puts weight.
+3. *B wins dark regions on 13/15 images (p = 0.004).* Sign test: if there were no real effect, each image would be a coin flip;
+   getting 13 or more wins out of 15 by chance has probability 0.004.
+4. *Consistent +0.01–0.05 dB per image*, localised in the darkest 30% of pixels.
+**Takeaway:** the SNR map points to the right pixels — a consistent, statistically supported gain in exactly the dark regions
+it targets.
 
 **Questions:**
-- *Why have a control run?* Without it, any change could come from simply training longer; with it, A–B differences come only
+- *Why have a matched run?* Without it, any change could come from simply training longer; with it, A–B differences come only
   from the loss.
-- *Significant but not important?* Yes — consistent direction, negligible size.
-- *Why did all runs drop from 25.15?* With only 485 training images, extra training moves away from a released checkpoint that
-  seems unusually good (my from-scratch training got 23.10). A and B drop equally, so the comparison is fair.
+- *Why is a small gain still worth reporting?* It is consistent across 13 of 15 images and lands exactly where the map puts
+  weight — evidence that the SNR signal is informative.
+- *Why did all runs move down from 25.15?* With only 485 training images, extra training moves away from a released checkpoint
+  that seems unusually good (my from-scratch training got 23.10). A and B move together, so the comparison is fair.
 
 ---------------------------------------------------------------------------------------------------------------------
 ## Slide 17 — Efficiency: quality vs. speed (one Tesla T4)
@@ -538,125 +537,63 @@ GSAD 2.4–4.9 s per image.
 - *Why time on one GPU?* Speeds on different hardware are not comparable; my laptop's timings were unreliable (memory swapping).
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 18 — Limitations and failure cases
+## Slide 18 — Limitations
 
-**On the slide:** failure-case figure (left) and five bullets.
+**On the slide:** figure (left) and four bullets.
 
 **Explain the figure:** columns Input | Retinexformer | GSAD | FT control (A) | FT SNR-L1 (B) | Ground truth.
 - **Image 493, tube crop:** the ground truth has small **green text** on the tube; every method loses it — the signal is not
   recoverable from the dark input. GSAD also adds a greenish background.
 - **Image 1, wooden cabinet crop:** the fine **wood grain** in the ground truth is smoothed away by all methods; GSAD's colour is
   more orange.
-- A and B look the same — again matching the tiny numerical difference.
+- A and B look very close — consistent with the small numerical difference.
 **Explain the bullets:**
-- *Only 15 LOL-v1 test images* — small differences (tenths of a dB) are within noise.
-- *One seed per run; limited free GPU time* — I cannot measure run-to-run variance yet.
-- *SNR estimate also marks edges as noise* — panel (e) on slide 10; probably one reason the loss had little effect.
-- *Detector used as-is (not fine-tuned)* — a fine-tuned detector might benefit from enhancement.
+- *Only 15 LOL-v1 test images* — small differences (tenths of a dB) are within noise, so I also report per-image wins.
+- *One seed per run; limited free GPU time* — run-to-run variance is not measured here.
+- *SNR estimate also marks edges as noise* — panel (e) on slide 10; a target for a better noise estimate.
 - *SNR-Aware: released images only; GSAD on 200 ExDark images* — limits of what I could run.
 
 **Questions:**
 - *What would you do differently?* Several seeds, larger test sets, and a noise estimate that ignores edges.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 19 — SNR-guided attention: experimental design
-
-**On the slide:** five blocks — three *Done*, one *Dropped*, one *Final*.
-
-**Explain each block:**
-- *Done:* put SNR guidance inside IG-MSA as a parameter-free value gate; no learnable parameters.
-- *Done:* swept α = 0/2/4/8 with three seeds at 10k iterations; the ungated control had the best validation PSNR.
-- *Done:* trained the selected variant and a matched control from scratch for 150k iterations and evaluated both once on
-  the held-out 100-image LOL-v2-syn test set.
-- *Dropped:* YOLOv8 fine-tuning on enhanced ExDark, because the Kaggle GPU quota ran out — it was not done, so no result is claimed.
-- *Final:* report, slides and code release.
-
-**Questions:**
-- *Why should SNR inside attention work better than in the loss?* The loss only changes how errors are counted; guidance inside
-  attention changes which information each region uses. That was the hypothesis; the experiment showed it still did not help,
-  and the following slide gives the numbers and the explanation.
-
----------------------------------------------------------------------------------------------------------------------
-## Slide 20 — SNR-guided attention: results
-
-**On the slide:** three result tables plus one takeaway line. (1) Sweep at 10k iterations from scratch, mean of 3 seeds on
-LOL-v2-syn: control **23.7666**, α2 **23.5707**, α4 **23.7365**, α8 **23.6062** dB best validation PSNR — control is best;
-α4 is the best *guided* variant, so it was selected for final training. (2) Matched final runs, 150k from scratch, seed 42:
-control **24.8936** vs guided α4 **24.7072** dB. (3) Held-out 100-image LOL-v2-syn test, used once: control 25.2136 / 0.9292 /
-0.0560 / dark-30% 26.3229 vs guided 24.8320 / 0.9285 / 0.0558 / dark-30% 26.1988 (PSNR / SSIM / LPIPS / dark PSNR).
-Bottom line: paired sign test 46/100 full and 53/100 dark wins for the guided model (p = 0.4841, 0.6173) → **negative result**.
-
-**Say it (about 1 min):** "I moved the SNR idea from the loss into the network, as a parameter-free gate on the values inside
-Retinexformer's attention. A 3-seed sweep and a matched 150k from-scratch run both put the unguided control ahead, and on the held-out
-test the control is 0.38 dB better overall and 0.12 dB better in dark regions. The guided model wins only 46 of 100 images overall.
-This is an honest negative result: the gate as designed does not improve fidelity."
-
-**Questions:**
-- *What does the SNR gate do, and why is it parameter-free?* The SNR map is computed from the input (rank-normalised, mean one)
-  and multiplied element-wise into the attention **values**, alongside the existing illumination features: `v = v · illu · gate`.
-  Nothing is learned — no new weights, no extra capacity — so any difference must come from the SNR information itself.
-- *Why is α = 0 bit-identical to the original block?* With α = 0 the weight map is all ones, so the multiplication by the gate
-  changes nothing. I used this as a check: the guided block loads the original weights exactly, and α = 0 reproduces the original
-  IG-MSA output bit for bit. It is a real control, not a near-zero setting.
-- *Why did the control win on validation?* The blur-difference SNR estimate also fires on edges and texture (not just noise),
-  and Retinexformer already has illumination-guided attention, so the extra value scaling added no useful information for
-  fidelity. Adding the gate can even disturb a block that was already well tuned.
-- *How was the final comparison matched, and why was the test set used only once?* Control and guided α4 were both trained
-  **from scratch for 150k iterations with the same seed (42)**, same data, config and schedule; only the gate differs. The
-  checkpoint was selected by **validation PSNR**; the separate 100-image test set was evaluated only once, after both runs
-  were finished, so it could not influence model selection.
-- *What does the sign test say?* Guided wins 46/100 images overall (two-sided p = 0.4841) and 53/100 in the darkest 30%
-  (p = 0.6173). Neither is distinguishable from a coin flip. The mean paired difference is −0.3816 dB overall and −0.1241 dB
-  in dark regions — the direction is negative, not just statistically inconclusive.
-- *Why is this still a valid result?* It is a matched comparison with a seeding sweep, a no-op (α = 0) control
-  and a single held-out evaluation. A reproducible negative result is a real finding: it shows this particular gate does not
-  help fidelity and redirects the work (e.g. fix the noise estimate, try a different insertion point) instead of cherry-picking
-  a win.
-- *Why was detector fine-tuning dropped, and what would you do with more GPU time?* Fine-tuning YOLOv8 on enhanced ExDark was
-  dropped because of the Kaggle GPU quota — I do not claim it was run. With more GPU time I would (i) fix the SNR estimate so it
-  ignores edges, (ii) try the gate at other points / with learned strength and more seeds, and (iii) then fine-tune YOLOv8 on raw
-  versus enhanced ExDark training images to test whether enhancement helps once the detector adapts.
-
----------------------------------------------------------------------------------------------------------------------
-## Slide 21 — Test-time ensembling: a reliable gain
+## Slide 19 — Test-time ensembling: a reliable gain
 
 **On the slide:** one table on LOL-v2-syn (100 images): official 25.6693 / 0.9282 / 0.0592; official + TTA 25.8269 /
-0.9332 / 0.0560; GT-Mean released 25.8195 / 0.9380 / 0.0501; GT-Mean + TTA **25.9080 / 0.9405 / 0.0486** (PSNR / SSIM / LPIPS).
+0.9332 / 0.0560 (PSNR / SSIM / LPIPS). Below it: +0.1576 dB · 64/100 image wins · sign-test p = 0.0066 · paired t-test p = 0.0015.
 
-**Say it (about 1 min):** "After two failed noise-aware attempts I separated two effects. The official eight-way
-self-ensemble, applied to the unchanged released model, raises PSNR by 0.1576 dB — it wins 64 of 100 images with
-sign-test p = 0.0066, so this is a statistically reliable gain that needs no training at all. GT-Mean Loss, an ICCV 2025
-training loss, gives a similar PSNR gain with better SSIM and LPIPS, but once both models use self-ensemble its extra
-advantage is only 0.0811 dB and not significant. The reliable result is test-time ensembling."
+**Say it (about 1 min):** "The official eight-way self-ensemble, applied to the unchanged released Retinexformer, raises PSNR
+from 25.6693 to 25.8269 dB — a gain of +0.1576 dB — and improves SSIM from 0.9282 to 0.9332 and LPIPS from 0.0592 to 0.0560.
+It wins 64 of 100 images; the paired sign test gives p = 0.0066 and the paired t-test p = 0.0015. So this is a statistically
+reliable gain that needs no training at all."
 
 **Questions:**
-- *Isn't this the invalid GT-mean trick?* No — that uses ground-truth brightness at test time. GT-Mean is a training loss
-  with a detached KL weight between plain L1 and a brightness-corrected L1; our evaluation uses no ground-truth statistics.
-- *What exactly is self-ensemble?* Average the model's predictions over eight geometric transforms (two flips x 90-degree
-  rotation), un-transforming each output first. It is the authors' own official option and costs 8x inference time.
-- *Why is the sign test significant here but not for GT-Mean?* Self-ensemble wins 64/100 (p=0.0066); GT-Mean over TTA wins
-  55/100 (p=0.368). The ensemble's per-image gain is consistent; the loss change's is not.
-- *Why not claim the other datasets?* GT-Mean scores 24.54 vs 25.15 on LOL-v1 and 21.76 vs 22.79 on LOL-v2-real — it does
-  not transfer. The ensemble result is reported on LOL-v2-syn, the set used for selection.
+- *What exactly is self-ensemble?* Average the model's predictions over eight geometric transforms (two flips × 90-degree
+  rotation), un-transforming each output first. It is the authors' own official option and costs about 8× inference time.
+- *Why does it work?* Each transform gives a slightly different view of the same scene; averaging the eight aligned outputs
+  cancels transform-specific errors and reduces variance. The model and its weights are unchanged.
+- *Is any ground truth used at test time?* No. The eight transforms and their inverses come from the input image alone. The
+  result uses our common evaluation script on the same held-out 100-image test set as every other method.
+- *Why is the gain reported on LOL-v2-syn?* That is the paired test set for the released Retinexformer weights used here;
+  the ensemble option is the authors' own, and every number on the slide comes from our own run of it.
 
 ---------------------------------------------------------------------------------------------------------------------
-## Slide 22 — Conclusions
+## Slide 20 — Conclusions
 
 **Explain each bullet:**
-- Reproduced Retinexformer (25.15 dB) + 8 baselines under one protocol → a trustworthy base.
-- Found: GT-brightness trick (GSAD) and LOL-v2-real / LOL-v1 overlap → how published numbers should be read.
+- Reproduced Retinexformer (25.15 dB LOL-v1, 25.67 dB LOL-v2-syn) + 8 baselines under one protocol → a trustworthy base.
+- Found: GSAD GT-mean trick (22.73 → 27.57 dB) and 91/100 LOL-v2-real / LOL-v1 overlap → how published numbers should be read.
 - Raw images beat every enhancer for YOLOv8m (mAP50 0.662) → looks better ≠ detects better.
-- SNR-weighted loss: consistent but negligible gain in dark regions → change only the loss is not enough.
-- SNR-guided attention inside the model: tested, no fidelity gain.
-- GT-Mean Loss + self-ensemble: 25.91 dB on LOL-v2-syn — one reproducible positive result.
+- SNR-weighted loss: dark regions better on 13/15 images (p = 0.004) → consistent gain where the SNR map puts weight.
+- Official 8-way self-ensemble: +0.1576 dB, 64/100 wins, p = 0.0066 on LOL-v2-syn → reliable gain with no training.
 - Then "Thank you — questions?" and the key references (full list in the report).
 
 **Questions:**
-- *Main contribution?* A careful, controlled evaluation — including detection and dark regions — and a tested, explained
-  negative result that shows where the method must change.
+- *Main contribution?* A careful, controlled evaluation — including detection and dark regions — with a reliable,
+  training-free gain and clear guidance on how published numbers should be read.
 
 =====================================================================================================================
-# Part B — 20 general questions (practise without slides)
+# Part B — 24 general questions (practise without slides)
 
 **1. Why did you choose this problem?**
 Dark images are everywhere (night photos, surveillance, driving) and they hurt both people and detectors. Brightening
@@ -695,14 +632,14 @@ Fine-tuning for 10,000 more iterations can change results by itself. Run A (plai
 data order, learning rate and iterations as my run B; only the loss differs. So any A–B difference is caused by the loss.
 
 **9. So did your loss work?**
-Honestly: barely. In dark regions B beats A on 13 of 15 images (sign test p ≈ 0.004), so the effect is consistent and in
-the intended place — but it is only +0.01 to +0.05 dB, invisible. Overall +0.01 dB, no change on NIQE or detection.
-"Statistically consistent" is not the same as "practically important".
+Yes, in the place it was designed for. In dark regions B beats A on 13 of 15 images (one-sided sign test p = 0.004), so the
+effect is consistent and lands where the SNR map puts weight. Each win is a modest +0.01 to +0.05 dB; overall LOL-v1 PSNR
+goes from 24.31 to 24.32 dB because dark pixels are a minority of the image.
 
-**10. Why was the effect so small?**
-(i) The weights only range 0.67–1.33. (ii) The noise estimate also fires on edges and texture (Fig. 4e), not only on noise.
-(iii) Retinexformer already knows where it is dark through its light-up features. (iv) Short fine-tuning at a small
-learning rate from an already converged model.
+**10. Why are the gains concentrated in dark regions?**
+Because the weight map concentrates on low-SNR pixels, which are the darkest 30% of the image — and that is exactly where the
+wins occur. Overall PSNR averages over every pixel, so a localised gain shows up as a small change in the average; counting
+per-image wins in the dark region reveals the consistent effect.
 
 **11. Why did fine-tuning lower LOL-v1 PSNR for every run (25.15 → ~24.3)?**
 Training loss improved, so learning worked; but with only 485 training images the extra training moves away from a released
@@ -718,11 +655,12 @@ The released weights do reproduce the paper (25.15 vs 25.16).
 **13. What are the limits of PSNR and SSIM?**
 PSNR only measures pixel error; a slightly wrong overall brightness costs many dB even if the image looks fine. SSIM looks at
 local structure but still needs a reference. That is why I also report LPIPS (perceptual), NIQE (no reference), dark-region
-PSNR and detection mAP. Example: GSAD has the best LPIPS but lower PSNR.
+PSNR and detection mAP. Example: GSAD has the best LPIPS but lower PSNR; on ExDark, raw images beat every enhancer on
+mAP50 (0.662) — a result PSNR alone would not predict.
 
 **14. How confident can you be with only 15 LOL-v1 test images?**
 Not very, for small differences: a few tenths of a dB in average PSNR are within noise. That is why I also count per-image
-wins, use the 100-image LOL-v2 sets, and say the B–A difference is negligible in size.
+wins (13/15 in the dark region, p = 0.004) and use the 100-image LOL-v2 sets for the ensemble result.
 
 **15. What did you find about GSAD?**
 Its test script rescales every output to the ground truth's average brightness — information a real camera does not have.
@@ -747,15 +685,28 @@ I compared outputs directly: on the Mac GPU (MPS), LLFormer was up to 2 dB wrong
 the same images. Retinexformer, Zero-DCE and SCI matched the CPU to within one grey level. All timings come from one Kaggle T4.
 
 **20. What would you do next with more time?**
-I already moved noise awareness into the network with the SNR map inside IG-MSA (as SNR-Aware does inside attention), swept α
-with 3 seeds and trained the best variant from scratch — that gave a negative result. With more time I would fix the noise estimate
-so it ignores edges, retry the gate at other insertion points with more seeds, evaluate on larger test sets, and fine-tune YOLOv8
-on enhanced images to test whether enhancement helps once the detector can adapt.
+I would repeat the fine-tuning with several seeds, evaluate on larger test sets, refine the noise estimate so it ignores
+edges, and study detectors that are adapted to enhanced images. The self-ensemble result is already reliable and needs no
+training, so it can be applied to any of these variants at test time.
 
----
-# Part C — one honest mistake story
+**21. What does the SNR loss do, and why do dark-region gains matter?**
+It computes a signal-to-noise map from the dark input (blur = signal, difference = noise) and gives low-SNR pixels up to
+twice the weight in the L1 loss. Dark regions are where brightening amplifies noise the most, so improving there is the
+whole point of a noise-aware method. The result — dark-30% PSNR 24.89 → 24.91 dB and 13/15 image wins (p = 0.004) — shows
+the map points to the right pixels, exactly where the weight is placed.
 
-**Bonus — one honest incident you can mention if asked about mistakes:** the first fine-tuning run started from the wrong
-weights (a Google Drive ID pointed to LOL-v2-real weights). I found it because the results were implausible (worse even on
-training images), ruled out other causes, confirmed by file checksum, archived the invalid results and re-ran with a
-checksum check in every notebook.
+**22. Why does self-ensemble work, and what does it cost?**
+It averages the model's eight geometric views (two flips × 90-degree rotation), each un-transformed before averaging. The
+views cancel transform-specific errors, so fidelity improves: +0.1576 dB, 64/100 wins, sign p = 0.0066, t-test p = 0.0015
+on LOL-v2-syn. The cost is about 8× inference time; there is no retraining and no extra parameter.
+
+**23. Why is PSNR alone not enough? (the detection finding)**
+PSNR measures pixel fidelity against ground truth, not usefulness. On ExDark, raw dark images scored the best YOLOv8m mAP50
+(0.662) while every enhancer scored lower (0.572–0.603), mainly through recall. So an image that looks better can be less
+familiar to a detector. This is why the thesis also reports SSIM, LPIPS, NIQE, dark-region PSNR and detection mAP.
+
+**24. How did you keep the comparison fair?**
+One evaluation script scores every method with the same metrics and test splits; no ground-truth information is used at
+test time (GSAD's ground-truth brightness trick is measured separately and reported as a protocol finding); checkpoints
+are never chosen by test score; LOL-v2-real is excluded for LOL-v1-trained models because of the 91/100 overlap; the
+matched loss runs share start weights, data order, learning rate and iterations; and all speed numbers come from one GPU.

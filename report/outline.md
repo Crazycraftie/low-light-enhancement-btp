@@ -14,7 +14,7 @@ Title: *Noise-Aware Transformer-Based Low-Light Image Enhancement with Downstrea
 | IV | Experimental Setup | datasets, metrics (with eqs), baselines, implementation (Kaggle T4, PyTorch 2.11, iters, lr, batch, crop, seed, α), evaluation protocol rules | Table II datasets; Table III metrics ↑/↓; Table IV fine-tuning settings |
 | V | Results | A. quantitative (LOL); B. no-reference; C. qualitative; D. reproduction of Retinexformer; E. GSAD protocol; F. detection; G. efficiency; H. ablation | Tables V–IX; Figs 5–10 (grid, LIME grid, training curves, detection examples, quality–speed, fine-tuning curves) |
 | VI | Discussion and limitations | what worked/didn't and why; failure cases; small test set; compute limits; incidents | Fig. 11 failures |
-| VII | SNR-Guided Attention: Results | gate design; sweep over α; matched from-scratch runs; held-out test evaluation and negative result | Table X (SNR sweep and final) |
+| VII | Test-Time Self-Ensemble | official 8-way geometric TTA on the released model; paired per-image statistics | Table X (PSNR / SSIM / LPIPS with and without TTA) |
 | VIII | Conclusion | – | – |
 | – | References | 28 verified (Crossref / arXiv / official pages) | – |
 

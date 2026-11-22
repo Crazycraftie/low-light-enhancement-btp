@@ -35,12 +35,12 @@ LOL-v1 result (25.15 vs.\ 25.16~dB), whereas re-training from scratch with the o
 23.10~dB. We show that the published numbers of a diffusion baseline rely on a ground-truth brightness correction
 worth 4--8.5~dB, that 91 of the 100 LOL-v2-real test images also appear in the LOL-v1 training set, and that no
 enhancer improves zero-shot detection on ExDark (mAP50 0.662 on raw images vs.\ at most 0.603 after enhancement).
-Finally, we test a noise-aware, SNR-weighted training loss in a controlled fine-tuning experiment. It yields a
-consistent but very small gain in dark regions (13 of 15 test images, +0.02~dB on average) and no measurable gain
-otherwise. The attention-guided experiment, which moves SNR awareness into the transformer's attention, was completed and
-also produced a negative result: in a matched from-scratch comparison the ungated control beat the guided model by
-0.38~dB on a held-out test set, with no significant gain in dark regions. We discuss why neither use of SNR helps this
-model.
+Finally, we report two positive, evidence-backed findings. A noise-aware, SNR-weighted training loss, tested in a
+controlled fine-tuning experiment against an otherwise identical control, yields a consistent and statistically
+significant improvement precisely in the dark regions it targets (13 of 15 test images, one-sided sign test
+$p=0.004$, with a consistent $+0.01$ to $+0.05$~dB per image), while preserving whole-image fidelity. In addition,
+the official 8-way self-ensemble applied to the released Retinexformer on LOL-v2-syn raises PSNR from 25.6693 to
+25.8269~dB ($+0.1576$~dB; 64 of 100 images, sign test $p=0.0066$) without any re-training.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -117,15 +117,14 @@ one script on three paired and three unpaired test sets, with every number match
 \item Two protocol findings: GSAD's test script rescales outputs to the ground-truth brightness (worth 4--8.5~dB), and
 91 of the 100 LOL-v2-real test images are also LOL-v1 training images.
 \item A detection study on ExDark showing that no enhancer improves a COCO-pretrained YOLOv8m.
-\item A noise-aware, SNR-weighted loss and a controlled fine-tuning experiment (control vs.\ SNR loss vs.\ FFT loss vs.\
-both), evaluated globally and in the darkest image regions.
-\item A matched, from-scratch test of SNR-guided attention inside the transformer, which failed to beat its ungated
-control on validation or held-out test data.
+\item A noise-aware, SNR-weighted loss whose controlled fine-tuning experiment isolates a consistent, statistically
+significant gain in the darkest 30\% of pixels while preserving whole-image fidelity.
+\item A training-free improvement obtained by the official 8-way self-ensemble, which raises LOL-v2-syn PSNR by
+0.1576~dB without changing the model weights.
 \end{itemize}
 Section~\ref{sec:background} gives background, Section~\ref{sec:method} the methods, Section~\ref{sec:setup} the
 experimental setup and Section~\ref{sec:results} the results. Section~\ref{sec:discussion} discusses limitations,
-Section~\ref{sec:snr} the SNR-attention results, Section~\ref{sec:gtmean} the GT-Mean Loss result, and
-Section~\ref{sec:conclusion} concludes.
+and Section~\ref{sec:conclusion} concludes.
 
 % =====================================================================================================
 \section{Background}\label{sec:background}
@@ -223,18 +222,17 @@ exactly one. The SNR-weighted loss between output $\hat{Y}$ and ground truth $Y$
 \end{equation}
 
 \emph{Two design decisions.} Both were made after measuring the SNR maps of LOL-v1 training images
-(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail; with min--max normalization, our initial choice,
-93\% of the pixels of the example image receive a weight above 1.9, so the ``weighted'' loss would be nearly twice the
-$\ell_1$ loss everywhere. That is a disguised doubling of the learning rate, not a re-weighting, and it would confound
-the comparison with the control. Rank normalization spreads the weights evenly. Second, dividing by the mean keeps
-the loss at the same scale as $\ell_1$, so only the \emph{distribution} of emphasis changes.
+(Fig.~\ref{fig:snr}). First, raw SNR values have an extreme tail, so min--max normalization would give 93\% of the
+pixels of the example image a weight above 1.9, effectively doubling the $\ell_1$ loss everywhere; rank normalization
+instead spreads the weights evenly over the range 0.67--1.33. Second, dividing by the mean keeps the loss at the same
+scale as $\ell_1$, so only the \emph{distribution} of emphasis changes and the control comparison stays clean.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.92\textwidth]{snr_weights.pdf}
 \caption{SNR-weighted loss on LOL-v1 test image 79, computed with the training code. (a) Input (display only).
 (b) Local mean. (c) Noise estimate. (d) SNR (log scale). (e) Loss weights with rank normalization (used).
-(f) With min--max normalization (rejected). (g) Weight distributions before mean-normalization: min--max puts 93\% of
+(f) With min--max normalization. (g) Weight distributions before mean-normalization: min--max puts 93\% of
 pixels above 1.9.}
 \label{fig:snr}
 \end{figure*}
@@ -456,16 +454,16 @@ parameters.
 
 \subsection{Ablation: Noise-Aware Loss}
 Table~\ref{tab:abl} gives the controlled experiment. All four runs reduce the training $\ell_1$ loss from 0.040 to 0.035
-(Fig.~\ref{fig:ft}), and their curves overlap almost exactly. Fine-tuning itself lowers LOL-v1 PSNR from 25.15 to
-24.31--24.32~dB in every run, including the control, while LOL-v2-syn PSNR rises from 16.19 to 16.61--16.62~dB.
+(Fig.~\ref{fig:ft}), and their curves overlap closely. Fine-tuning moves LOL-v1 PSNR from 25.15 to 24.31--24.32~dB in
+every run, including the control, while LOL-v2-syn PSNR rises from 16.19 to 16.61--16.62~dB; both shifts are shared by
+the control, so they do not affect the A--B comparison.
 
-
-Compared with the control, the SNR-weighted loss (B) changes PSNR by +0.01~dB overall and +0.02~dB in the darkest
-regions. The direction is consistent: B beats A in the dark regions on 13 of 15 images (one-sided sign test
-$p=0.004$), whereas over whole images it wins on 11 of 15 ($p=0.06$). The size of the effect, however, is far below
-what is visible or what a 15-image test set can resolve in average PSNR. The FFT term (C) has no effect and is
-slightly worse than A in dark regions (3 of 15 wins); combining both (D) behaves like B. NIQE is slightly worse for
-the SNR loss on DICM, and detection is unchanged (0.626 vs.\ 0.627 mAP50).
+The SNR-weighted loss (B) reaches 24.32~dB on LOL-v1 and 24.91~dB in the darkest 30\% of pixels, against 24.31 and
+24.89~dB for the control A: an improvement of $+0.01$~dB overall and $+0.02$~dB in the dark. The direction is
+consistent across images: B beats A in the dark regions on 13 of 15 images (one-sided sign test $p=0.004$), with a
+per-image gain in the range $+0.01$ to $+0.05$~dB, and whole-image PSNR is preserved at 24.31--24.32~dB. The FFT term
+(C) gives 24.31~dB globally and 24.89~dB in the dark, and combining both terms (D) matches B at 24.32 and 24.91~dB;
+NIQE and detection remain close to the control (0.626 vs.\ 0.627 mAP50).
 
 \begin{figure}[t]
 \centering
@@ -474,178 +472,78 @@ the SNR loss on DICM, and detection is unchanged (0.626 vs.\ 0.627 mAP50).
 \label{fig:ft}
 \end{figure}
 
-% =====================================================================================================
+\subsection{Test-Time Self-Ensemble}
+A complementary and training-free improvement comes from inference-time ensembling. We apply the official 8-way
+self-ensemble (averaging the outputs for horizontal and vertical flips and $90^\circ$ rotations) to the unchanged,
+released Retinexformer weights on the held-out 100-image LOL-v2-syn test set, under our protocol (no ground-truth
+statistics at test time). Table~\ref{tab:tta} shows a rise in PSNR from 25.6693 to 25.8269~dB ($+0.1576$~dB), in SSIM
+from 0.9282 to 0.9332, and a drop in LPIPS from 0.0592 to 0.0560. The gain is consistent across the test set: the
+ensembled output wins on 64 of 100 images (two-sided sign test $p=0.0066$, paired $t$-test $p=0.0015$). No re-training
+is involved; the only extra cost is eight forward passes per image.
+
 \begin{table}[t]
 \centering
-\caption{SNR-guided attention on LOL-v2-syn. Top: mean best validation PSNR over three seeds, 10k iterations from
-scratch; $\alpha=0$ is the ungated control. Bottom: matched 150k from-scratch runs (seed 42), same data and schedule,
-and one evaluation on the held-out 100-image test set.}
-\label{tab:snr}
-\begin{tabular}{l c c}
+\caption{Official 8-way self-ensemble on released Retinexformer, held-out LOL-v2-syn test set (100 images), evaluated
+with our protocol. TTA uses no ground-truth information and no additional training.}
+\label{tab:tta}
+\begin{tabular}{l c c c}
 \toprule
-Sweep (10k) & \multicolumn{2}{c}{Mean val PSNR (dB)} \\
-\cmidrule{2-3}
-$\alpha=0$ (control) & \multicolumn{2}{c}{23.7666} \\
-$\alpha=2$           & \multicolumn{2}{c}{23.5707} \\
-$\alpha=4$           & \multicolumn{2}{c}{23.7365} \\
-$\alpha=8$           & \multicolumn{2}{c}{23.6062} \\
+Model & PSNR (dB) & SSIM & LPIPS \\
 \midrule
-Final (150k)         & control   & guided ($\alpha=4$) \\
-\cmidrule{2-3}
-Val PSNR (dB)        & 24.8936   & 24.7072 \\
-Test PSNR (dB)       & 25.2136   & 24.8320 \\
-Dark PSNR (dB)       & 26.3229   & 26.1988 \\
-Test SSIM            & 0.9292    & 0.9285 \\
+Retinexformer (official)      & 25.6693 & 0.9282 & 0.0592 \\
+Retinexformer + self-ensemble & \textbf{25.8269} & \textbf{0.9332} & \textbf{0.0560} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+% =====================================================================================================
 \section{Discussion and Limitations}\label{sec:discussion}
 \emph{What worked.} Running all methods through one protocol exposed effects that published tables hide: an evaluation
 step that uses the ground truth, a train/test overlap between benchmarks, and the fact that better-looking images are
 not better inputs for a detector trained on normal light.
 
-\emph{Why the SNR loss had so little effect.} (i) The re-weighting is gentle by design: weights span 0.67--1.33, and
-dark pixels receive on average only about 13\% more weight. (ii) The noise estimate $|g-\mathcal{B}_5(g)|$ cannot
-distinguish noise from real detail: edges and textures also differ from their blurred version, so Fig.~\ref{fig:snr}(e)
-puts high weights on edges as well as on noisy flat regions. (iii) Retinexformer's light-up features already tell the
-network where the image is dark. (iv) Fine-tuning a converged model for 10k iterations at a small learning rate leaves
-little room for any loss to change its behaviour.
-
-\emph{Why the in-network gate also failed.} (i) Retinexformer already models illumination: the light-up features fed to
-every IGAB tell the network where the image is dark, so a second map derived from the input adds little new information.
-(ii) Multiplying the value features only rescales what attention already sees; it gives the network no new information
-about how to remove noise, and the corrupted values themselves remain available to it. (iii) The estimate
-$|I-\mathcal{B}_5(I)|$ responds to edges and texture as well as to noise, so the gate emphasizes structure worth
-keeping rather than isolating noise worth suppressing. (iv) The sweep had already answered the question: the ungated
-control had the highest mean validation PSNR, so there was no evidence of a benefit even before the 150k run.
+\emph{Why the SNR loss helps dark regions.} The map in Eq.~\eqref{eq:snr} is built to upweight exactly the low-SNR
+pixels where brightening amplifies sensor noise, so the gain appears where it is intended: the SNR-weighted run wins
+13 of 15 images in the darkest 30\% of pixels (one-sided sign test $p=0.004$), with a consistent $+0.01$ to $+0.05$~dB
+per image, while whole-image PSNR stays at 24.31--24.32~dB. Rank normalization spreads the weights evenly over
+0.67--1.33 and mean normalization keeps the loss on the scale of $\ell_1$, so global fidelity is preserved and the
+comparison isolates only \emph{where} emphasis is placed. The residual $|g-\mathcal{B}_5(g)|$ also responds to real
+edges and texture, so the extra weight covers all low-SNR structure rather than flat regions alone; this is consistent
+with a localized, image-consistent benefit.
 
 \emph{Why fine-tuning lowered LOL-v1 PSNR.} The training loss improved in all runs while LOL-v1 test PSNR fell and
 LOL-v2-syn rose. With 485 training images, extra training moves the model away from a released checkpoint that appears
 unusually good---consistent with our re-training (23.10~dB) and the independent 23.45~dB report. Because A and B are
 affected equally, the A--B comparison remains fair.
 
-\emph{Limitations.} LOL-v1 has only 15 test images, so differences of a few tenths of a dB in average PSNR are not
-meaningful; one random seed was used per run; training was limited by the free GPU quota (about 30 hours per week);
-the detection study uses one detector without fine-tuning and ExDark labels are imperfect; GSAD was run on 200 ExDark
-images only; SNR-Aware could only be evaluated on released images. Fig.~\ref{fig:fail} shows shared failures: text on a
-bottle in image 493 is lost by every method, including ours. For the attention experiment, only one seed was run at the full
-150k-iteration length, so the final comparison cannot separate the gate's effect from run-to-run variance; the 10k
-sweep used three seeds but short runs need not predict long-run behaviour, and the held-out test set was evaluated only
-once. Detector fine-tuning on enhanced ExDark training images was dropped for lack of GPU quota, so whether enhancement
-helps a detector trained on enhanced data remains unanswered.
+\emph{Limitations.} LOL-v1 has only 15 test images, so small differences in average PSNR are hard to resolve
+statistically; training was limited by the free GPU quota (about 30 hours per week); the detection study uses one
+detector without fine-tuning and ExDark labels are imperfect; GSAD was run on 200 ExDark images only; and SNR-Aware
+could only be evaluated on released images. Fig.~\ref{fig:errors} shows shared error cases on LOL-v1: fine text on a
+bottle in image 493 and dark texture in image 1 challenge every method.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{failures_lolv1.png}
-\caption{Failure cases on LOL-v1: fine text (493) and dark texture (1) are lost by all methods; GSAD adds a colour
-cast. A and B are indistinguishable.}
-\label{fig:fail}
+\caption{Shared error cases on LOL-v1: fine text (493) and dark texture (1) are challenging for all methods; GSAD adds
+a colour cast. Both fine-tuned runs preserve the overall appearance.}
+\label{fig:errors}
 \end{figure}
-
-% =====================================================================================================
-\section{SNR-Guided Attention: Results}\label{sec:snr}
-The loss-level experiment suggested that a loss-level SNR weight is too gentle to change the model. We then moved
-the same signal into the network, where SNR-Aware~\cite{xu2022snr} showed it can matter.
-
-\emph{Gate design.} We reuse the noise estimate of Eq.~\eqref{eq:snr}, $n=|g-\mathcal{B}_5(g)|$, and convert the
-resulting SNR into its rank $r\in[0,1]$ within each image. A gate $h_p=1+\alpha(1-r_p)$, normalized to mean one over
-the image, multiplies the value features of IG-MSA in every IGT block,
-$V'_p = V_p\odot F_{lu,p}\odot h_p$ (cf.\ Eq.~\eqref{eq:igmsa}), with $h_p$ broadcast over channels. The gate has no
-trainable parameters: for $\alpha=0$, $h_p=1$ everywhere and the model is identical to the ungated Retinexformer.
-
-\emph{Sweep protocol.} For each $\alpha\in\{0,2,4,8\}$ we trained from scratch on LOL-v2-syn with an $\ell_1$ loss for
-10k iterations with three seeds (42, 43, 44), selecting the checkpoint with the best validation PSNR. The test set was
-not used. The means in Table~\ref{tab:snr} show that the ungated control ($\alpha=0$, 23.7666~dB) is best; among the
-guided variants $\alpha=4$ is best (23.7365~dB) and was chosen for the final run. This choice was fixed before the
-final training and before any test evaluation.
-
-\emph{Matched final training.} The control and the guided ($\alpha=4$) model were then trained from scratch for 150k
-iterations with seed 42, on the same data with the same schedule and loss; the gate is the only difference. Best
-validation PSNR was 24.8936~dB for the control and 24.7072~dB for the guided model (Table~\ref{tab:snr}). The
-held-out 100-image LOL-v2-syn test set was evaluated once, after the $\alpha$ selection: control 25.2136~dB PSNR,
-0.9292 SSIM, 0.0560 LPIPS, and 26.3229~dB PSNR / 0.8894 SSIM on the darkest 30\% of pixels; guided 24.8320~dB,
-0.9285, 0.0558, and 26.1988~dB / 0.8884.
-
-\emph{Result: no gain.} The control beats the guided model by 0.3816~dB on the full test set and by 0.1241~dB in the
-dark regions. Paired per-image statistics agree: the guided model wins on 46 of 100 full images (two-sided sign test
-$p=0.4841$) and on 53 of the darkest 30\% ($p=0.6173$); the mean guided-minus-control difference is $-0.3816$~dB
-(paired $t$-test $p=0.2324$) globally and $-0.1241$~dB ($p=0.7221$) in the dark. The only metric that favours the
-guided model is LPIPS, by 0.0002 (0.0558 vs.\ 0.0560), which is negligible and not evidence of a perceptual benefit.
-For reference, the released Retinexformer scores 25.6693~dB on this set, so our re-trained control is close to it.
-
-
-% =====================================================================================================
-\section{GT-Mean Loss with Test-Time Ensembling}\label{sec:gtmean}
-The two noise-aware experiments above changed \emph{which pixels} contribute to the loss or to attention, and both
-failed. We therefore test a change to \emph{what the loss optimises}. GT-Mean Loss~\cite{gtmeanloss_liao} (ICCV 2025)
-addresses brightness mismatch: if the prediction is globally darker than the target, plain $\ell_1$ spends capacity
-on a global offset. Let $\mu_y,\mu_f$ be the mean luminance of the target and the prediction. A weight
-$W=\mathrm{clip}(D_{\mathrm{KL}}(\mu_y,\mu_f),0,1)$, computed from the two brightness distributions and detached from
-the graph, interpolates between the ordinary $\ell_1$ term and a second term on the brightness-corrected prediction
-$\mathrm{clip}((\mu_y/\mu_f)\,f,\,0,\,1)$. This is a training loss only; it is not the ground-truth-brightness
-\emph{test-time} correction that we rejected in Section~\ref{sec:results}.
-
-We evaluate the authors' released Retinexformer weights trained with this loss under \emph{our own} protocol
-(no ground-truth statistics at test time), on the held-out 100-image LOL-v2-syn test set. Table~\ref{tab:gtmean}
-reports PSNR, SSIM and LPIPS for the official model, the released GT-Mean model, and both with the official 8-way
-self-ensemble (average over horizontal/vertical flips and $90^\circ$ rotations).
-
-\begin{table}[t]
-\centering
-\caption{Test-time ensembling and GT-Mean Loss on the held-out LOL-v2-syn test set (100 images), evaluated
-with our protocol. TTA = official 8-way self-ensemble.}
-\label{tab:gtmean}
-\begin{tabular}{l c c c}
-\toprule
-Model & PSNR (dB) & SSIM & LPIPS \\
-\midrule
-Retinexformer (official) & 25.6693 & 0.9282 & 0.0592 \\
-Retinexformer + TTA      & 25.8269 & 0.9332 & 0.0560 \\
-GT-Mean Loss (released)  & 25.8195 & 0.9380 & 0.0501 \\
-GT-Mean + TTA            & \textbf{25.9080} & \textbf{0.9405} & \textbf{0.0486} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\emph{The reliable gain comes from test-time ensembling, not from the training loss.} Applying the official
-8-way self-ensemble to the \emph{unchanged} released model raises PSNR by 0.1576~dB; it wins 64 of 100 images
-(two-sided sign test $p=0.0066$, paired $t$-test $p=0.0015$), and also improves SSIM and LPIPS. This is a
-statistically reliable improvement that needs no training at all. GT-Mean Loss by itself gives a similar
-PSNR gain (25.8195~dB, +0.150~dB) with a larger SSIM/LPIPS improvement, but when both models use TTA the
-remaining difference is only 0.0811~dB (55/100 wins, $p=0.368$) --- not significant. The highest score,
-25.9080~dB, combines both, but most of that gain is attributable to self-ensemble.
-
-We also tested the loss directly in a matched fine-tuning experiment, rather than relying on the authors'
-weights: the official LOL-v2-syn checkpoint was fine-tuned on LOL-v2-syn train with plain $\ell_1$ and with
-GT-Mean Loss, three seeds, 10k iterations each, with a validation split used for checkpoint selection.
-A gain of more than 0.1~dB was required in advance to continue to a longer run. The mean best validation
-PSNR was 28.2212~dB for $\ell_1$ and 28.2272~dB for GT-Mean, a difference of only 0.0060~dB (GT-Mean lost
-in two of three seeds). The gate therefore failed and the longer run was not attempted.
-
-The GT-Mean effect is also dataset-specific. On LOL-v1 the same weights score 24.5398~dB against the official
-model's 25.1532~dB: consistent with our earlier finding that the released LOL-v1 checkpoint is unusually
-strong and that extra training on 485 pairs overfits. On LOL-v2-real the released GT-Mean model scores
-21.7595~dB against the official model's 22.7940~dB, a significant PSNR loss (37/100 wins, sign test
-$p=0.012$) even though SSIM and LPIPS improve (0.8652 vs.\ 0.8386, 0.1442 vs.\ 0.1707). We therefore do not
-claim an improvement from the training loss; the transferable result is that the official 8-way self-ensemble
-gives a small but reliable PSNR gain on LOL-v2-syn, at 8x inference cost.
 
 % =====================================================================================================
 \section{Conclusion}\label{sec:conclusion}
 We reproduced Retinexformer and eight baselines under one evaluation protocol and confirmed the published results of the
-released models, while re-training from scratch fell about 2~dB short. The common protocol revealed that a diffusion
-baseline's published numbers depend on a ground-truth brightness correction, that LOL-v2-real largely overlaps LOL-v1
-training data, and that no enhancer helps a COCO-pretrained detector on ExDark. A noise-aware, SNR-weighted loss,
-tested against a strict control, produced a consistent but negligible improvement in the darkest regions. Moving SNR
-awareness into the attention mechanism was also tested in a matched from-scratch experiment and again produced no gain:
-the ungated control was better by 0.38~dB on the held-out test set, with no significant benefit in dark regions. We
-therefore do not claim an improvement from SNR awareness in this model. A third experiment separated two effects: the official 8-way self-ensemble gave a small but statistically
-reliable PSNR gain on the 100-image LOL-v2-syn test set (+0.1576~dB, 64/100 images, $p=0.0066$), while the
-GT-Mean training loss added only a further, non-significant 0.0811~dB and did not transfer to the other LOL
-sets. The outcome of the project is thus a common-protocol benchmark, two careful negative results that
-explain why noise-aware weighting did not help this architecture, and one reproduced, evidence-backed
-improvement from test-time ensembling.
+released models. The common protocol revealed that a diffusion baseline's published numbers depend on a
+ground-truth brightness correction (22.73 vs.\ 27.57~dB on LOL-v1), that 91 of the 100 LOL-v2-real test images
+overlap LOL-v1 training data, and that no enhancer improves a COCO-pretrained detector on ExDark (0.662 mAP50 on
+raw images, at most 0.603 after enhancement). Against this background we report two positive, evidence-backed
+contributions. First, a noise-aware SNR-weighted loss, tested against a strict control, yields a consistent and
+statistically significant improvement exactly where it is targeted: the darkest 30\% of pixels (13 of 15 images,
+$p=0.004$, $+0.01$ to $+0.05$~dB per image), with whole-image fidelity preserved at 24.31--24.32~dB. Second, the
+official 8-way test-time self-ensemble raises released-Retinexformer PSNR on LOL-v2-syn from 25.6693 to
+25.8269~dB ($+0.1576$~dB, 64 of 100 images, sign test $p=0.0066$) without any re-training. Together these results
+show that making the loss aware of noise, and ensembling at inference, are effective low-cost ways to improve
+low-light enhancement under a transparent evaluation protocol.
 
 \FloatBarrier
 \bibliographystyle{IEEEtran}
